@@ -1,0 +1,38 @@
+recursiveFib := func [n] [
+    if [n < 2] [n] [recursiveFib [n-2] + recursiveFib [n-1]]
+]
+
+# Recursive fibonacci
+for [i := 0, i < 10, i++] [
+    print [recursiveFib [i]]
+]
+
+patternFib := func [n] [
+    match [n] against
+        [0 -> 0]
+        [1 -> 1]
+        [_ -> patternFib [n-2] + patternFib [n-1]]
+]
+
+# Pattern-matching fibonacci
+for [i := 0, i < 10, i++] [
+    print [patternFib [i]]
+]
+
+iterativeFib := func [n] [
+    if [n < 2] [n] [
+        a := 0
+        b := 1
+        for [i := 2, i < n; i++] [
+            tmp := a
+            a := b
+            b := tmp + b
+        ]
+        b
+    ]
+]
+
+# Iterative fibonacci
+for [i := 0, i < 10, i++] [
+    print [iterativeFib [i]]
+]

@@ -3,4 +3,4 @@ project(Canterbury C)
 
 set(CMAKE_C_STANDARD 99)
 
-add_executable(canterbury main.c)
+add_executable(canterbury src/main.c)

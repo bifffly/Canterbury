@@ -1,0 +1,18 @@
+import math [sqrt]
+
+Point := class [x, y] [
+    print := func [] ["(" + x + ", " + y + ")"]
+
+    equal := func [point] [
+        point x = x and point y = y
+    ]
+
+    distanceTo := func [point] [
+        sqrt [[point x - x]^2 + [point y - y]^2]
+    ]
+]
+
+origin := Point [0, 0]
+a := Point [3, 4]
+print [origin equal [a]] # Expect: false
+print [origin distanceTo [a]]; # Expect: 5

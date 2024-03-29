@@ -1,0 +1,70 @@
+Tokenizer := class [txt] [
+  iterator := func [] [TokenIterator [txt]]
+]
+
+TokenIterator := class [txt, curr, start] [
+  hasNext := func [] [
+    if [start >= txt length []] [false]
+
+    while [start < txt length [] & txt charAt [start] = " "] [
+      start++
+    ]
+
+    start < txt length []
+  ]
+
+  next := func [] [
+    stop := start
+    while [stop < txt length [] & txt charAt [stop] <> " "] [
+      stop++
+    ]
+
+    curr := txt substring [start, stop]
+    start := stop
+    curr
+  ]
+]
+
+isDigit := func [char] [char >= "0" & char <= "9"]
+
+calculate := func [txt] [
+  stack := ()
+
+  tokenizer := Tokenizer [txt]
+  iterator := tokenizer iterator []
+  while [iterator hasNext []]
+    match [curr := iterator next []] against
+      [isDigit -> stack push [curr asNum []]
+      ["+" -> [
+        right := stack pop []
+        left := stack pop []
+        sum := left + right
+        print ["added {} + {} = {}", left, right, sum]
+      ]]
+      ["*" -> [
+        right := stack pop []
+        left := stack pop []
+        product := left * right
+        print ["divided {} * {} = {}", left, right, product]
+      ]]
+      ["-" -> [
+        right := stack pop []
+        left := stack pop []
+        difference := left - right
+        print ["divided {} - {} = {}", left, right, difference]
+      ]]
+      ["/" -> [
+        right := stack pop []
+        left := stack pop []
+        quotient := left / right
+        print ["divided {} / {} = {}", left, right, quotient]
+      ]]
+  ]
+  stack pop []
+]
+
+result := calculate ["3 2 * 4 2 * +"]
+# ((3 2 *) (4 2 *) +)
+# (6 8 +)
+# (14)
+print [result]

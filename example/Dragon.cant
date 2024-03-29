@@ -1,0 +1,22 @@
+dragon := func [n, turn := "R"] [
+    match [n] against
+        [0 -> ""]
+        [_ -> dragon [n-1] + turn + dragon [n-1, "L"]]
+]
+
+dragon2 := func [n, turn := "R"] [
+    if [n < 1] [""] [dragon [n-1] + turn + dragon [n-1, "L"]]
+]
+
+dragon [1]
+# "R"
+dragon [2]
+# RRL
+dragon [2, "L"]
+# RLL
+dragon [3]
+# RRLRRLL
+dragon [3, "L"]
+# RRLLRLL
+dragon [4]
+# RRLRRLLRRRLLRLL

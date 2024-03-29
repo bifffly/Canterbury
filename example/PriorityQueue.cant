@@ -1,0 +1,55 @@
+PriorityQueue := class [heap := ()] [
+    parent := func [idx] [[idx - 1] / 2]
+
+    leftChild := func [idx] [[idx * 2] + 1]
+
+    rightChild := func [idx] [[idx * 2] + 2]
+
+    add := func [item] [
+        heap add [item]
+
+        idx := heap size [] - 1
+        while [idx > 0] [
+            if [heap at [parent [idx]] > heap at [idx]] [
+                heap swap [idx, parent [idx]]
+                idx := parent [idx]
+            ] [break]
+        ]
+    ]
+
+    dequeue := func [] [
+        top := heap at [0]
+        heap set [0, heap peek []]
+        heap pop []
+
+        idx := 0
+        while [idx < heap size []] [
+            min := idx
+            left := leftChild [idx]
+            right := rightChild [idx]
+
+            if [left < heap size [] & heap at [right] < heap at [min]] [
+                min := right
+            ]
+
+            if [min <> idx] [
+                heap swap [idx, min]
+                idx := min
+            ] [break]
+        ]
+
+        top
+    ]
+
+    addAll := func [items] [
+        for [item, items] [this add [item]]
+    ]
+]
+
+queue := PriorityQueue []
+queue addAll [(5, 2, 3, 4, 1)]
+assert queue = (1, 2, 3, 4, 5)
+
+queue := PriorityQueue []
+queue addAll [("e", "a", "c", "g", "h", "b", "d", "i", "f")]
+assert queue = ("a", "b", "c", "d", "e", "f", "g", "h", "i")
