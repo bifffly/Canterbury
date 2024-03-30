@@ -1,3 +1,10 @@
 .idea
+
+.gradle
+gradle
+gradlew
+gradlew.bat
+
+build
 cmake-build-debug
 out

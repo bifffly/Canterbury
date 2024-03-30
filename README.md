@@ -15,7 +15,7 @@ forStmt       ->  "for" "[" ( forOf | forUntil ) "]" block;
 forOf         ->  IDENTIFIER "," call;
 forUntil      ->  var_assign "," logicOr? "," logicOr?;
 ifStmt        ->  "if" "[" expr "]" block else?;
-else          ->  ( "elif" block )? block;
+else          ->  ( "elif" block )? "else" block;
 whileStmt     ->  "while" "[" expr "]" stmt;
 matchStmt     ->  "match" "[" logic_or "]" "against" ( case+ );
 block         ->  "[" stmt* "]";
