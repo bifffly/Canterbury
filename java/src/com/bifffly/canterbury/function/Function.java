@@ -19,6 +19,12 @@ public class Function implements Callable {
         this.env = env;
     }
 
+    public Function bind(Instance instance) {
+        Environment boundEnv = new Environment(env);
+        boundEnv.define("self", instance);
+        return new Function(expr, boundEnv);
+    }
+
     @Override
     public int arity() {
         return expr.getParams().size();

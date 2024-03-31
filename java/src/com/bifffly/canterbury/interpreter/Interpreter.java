@@ -13,6 +13,7 @@ import com.bifffly.canterbury.parser.expr.FuncExpr;
 import com.bifffly.canterbury.parser.expr.GetExpr;
 import com.bifffly.canterbury.parser.expr.GroupingExpr;
 import com.bifffly.canterbury.parser.expr.LiteralExpr;
+import com.bifffly.canterbury.parser.expr.SelfExpr;
 import com.bifffly.canterbury.parser.expr.StructExpr;
 import com.bifffly.canterbury.parser.expr.UnaryExpr;
 import com.bifffly.canterbury.parser.expr.ExprVisitor;
@@ -69,6 +70,10 @@ public class Interpreter implements ExprVisitor<Object>, StmtVisitor<Object> {
                 return "<native func print>";
             }
         });
+    }
+
+    public Environment getEnv() {
+        return env;
     }
 
     public void interpret(List<Stmt> stmts) {
@@ -155,7 +160,11 @@ public class Interpreter implements ExprVisitor<Object>, StmtVisitor<Object> {
     @Override
     public Object visitAssignmentExpr(AssignmentExpr expr) {
         Object value = eval(expr.getValue());
-        env.define(expr.getIdentifier().getLexeme(), value);
+        if (expr.getTarget() instanceof VariableExpr varExpr) {
+            env.define(varExpr.getIdentifier().getLexeme(), value);
+        } else if (expr.getTarget() instanceof GetExpr get && get.getExpr() instanceof SelfExpr self) {
+            ((Instance) env.get(self.getSelf())).define(get.getIdentifier(), value);
+        }
         return value;
     }
 
@@ -231,12 +240,19 @@ public class Interpreter implements ExprVisitor<Object>, StmtVisitor<Object> {
     }
 
     @Override
+    public Object visitSelfExpr(SelfExpr expr) {
+        return env.get(expr.getSelf());
+    }
+
+    @Override
     public Object visitStructExpr(StructExpr expr) {
         Map<String, Object> attributes = new HashMap<>();
         for (AssignmentExpr assignmentExpr : expr.getBody()) {
-            String name = assignmentExpr.getIdentifier().getLexeme();
-            Object value = eval(assignmentExpr.getValue());
-            attributes.put(name, value);
+            if (assignmentExpr.getTarget() instanceof VariableExpr varExpr) {
+                String name = varExpr.getIdentifier().getLexeme();
+                Object value = eval(assignmentExpr.getValue());
+                attributes.put(name, value);
+            }
         }
         return new Struct(expr, attributes);
     }

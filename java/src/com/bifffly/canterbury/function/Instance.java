@@ -1,23 +1,23 @@
 package com.bifffly.canterbury.function;
 
-import com.bifffly.canterbury.interpreter.RuntimeError;
+import com.bifffly.canterbury.interpreter.Environment;
 import com.bifffly.canterbury.tokens.Token;
 
 import java.util.List;
-import java.util.Map;
 
 public class Instance {
-    private Struct struct;
-    private final Map<String, Object> attributes;
+    private final Struct struct;
+    private final Environment env;
 
-    public Instance(Struct struct, List<Object> args) {
+    public Instance(Struct struct, Environment env, List<Object> args) {
         this.struct = struct;
-        this.attributes = struct.getAttributes();
+        this.env = new Environment(env);
+        struct.getAttributes().forEach(this.env::define);
 
         // Adding param values to attributes
         for (int i = 0; i < struct.arity(); i++) {
             String paramName = struct.getExpr().getParams().get(i).getLexeme();
-            attributes.put(paramName, args.get(i));
+            env.define(paramName, args.get(i));
 
             // Need to add param values to environment of function attributes
             for (String name : struct.getAttributes().keySet()) {
@@ -29,11 +29,16 @@ public class Instance {
         }
     }
 
+    public void define(Token identifier, Object value) {
+        env.define(identifier.getLexeme(), value);
+    }
+
     public Object get(Token identifier) {
-        if (attributes.containsKey(identifier.getLexeme())) {
-            return attributes.get(identifier.getLexeme());
+        Object value = env.get(identifier);
+        if (value instanceof Function func) {
+            return func.bind(this);
         }
-        throw new RuntimeError(identifier, "Undefined attribute '" + identifier.getLexeme() + "'.");
+        return env.get(identifier);
     }
 
     @Override

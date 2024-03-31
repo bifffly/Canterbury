@@ -17,7 +17,6 @@ public class Tokenizer  {
         KEYWORDS.put("or", OR);
         KEYWORDS.put("func", FUNC);
         KEYWORDS.put("lambda", FUNC);
-        KEYWORDS.put("class", CLASS);
         KEYWORDS.put("struct", STRUCT);
         KEYWORDS.put("for", FOR);
         KEYWORDS.put("while", WHILE);
@@ -27,7 +26,7 @@ public class Tokenizer  {
         KEYWORDS.put("match", MATCH);
         KEYWORDS.put("against", AGAINST);
         KEYWORDS.put("is", IS);
-        KEYWORDS.put("this", THIS);
+        KEYWORDS.put("self", SELF);
         KEYWORDS.put("true", TRUE);
         KEYWORDS.put("false", FALSE);
         KEYWORDS.put("null", NULL);

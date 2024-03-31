@@ -22,7 +22,7 @@ public class Struct implements Callable {
 
     @Override
     public Object call(Interpreter interpreter, List<Object> args) {
-        return new Instance(this, args);
+        return new Instance(this, interpreter.getEnv(), args);
     }
 
     @Override

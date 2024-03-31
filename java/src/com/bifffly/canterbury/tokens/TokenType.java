@@ -19,9 +19,9 @@ public enum TokenType {
     NUM, STR, IDENTIFIER,
 
     // Keywords
-    FUNC, CLASS, STRUCT,
+    FUNC, STRUCT, SELF,
     FOR, WHILE, IF, ELIF, ELSE,
-    MATCH, AGAINST, IS, THIS,
+    MATCH, AGAINST, IS,
     TRUE, FALSE, NULL,
 
     EOF;

@@ -6,12 +6,11 @@ import lombok.Getter;
 
 @AllArgsConstructor
 @Getter
-public class AssignmentExpr implements Expr {
-    private final Expr target;
-    private final Expr value;
+public class SelfExpr implements Expr {
+    private Token self;
 
     @Override
     public <T> T accept(ExprVisitor<T> exprVisitor) {
-        return exprVisitor.visitAssignmentExpr(this);
+        return exprVisitor.visitSelfExpr(this);
     }
 }

@@ -9,6 +9,7 @@ import com.bifffly.canterbury.parser.expr.FuncExpr;
 import com.bifffly.canterbury.parser.expr.GetExpr;
 import com.bifffly.canterbury.parser.expr.GroupingExpr;
 import com.bifffly.canterbury.parser.expr.LiteralExpr;
+import com.bifffly.canterbury.parser.expr.SelfExpr;
 import com.bifffly.canterbury.parser.expr.StructExpr;
 import com.bifffly.canterbury.parser.expr.UnaryExpr;
 import com.bifffly.canterbury.parser.expr.VariableExpr;
@@ -66,7 +67,6 @@ public class Parser {
             switch (peek().getType()) {
                 case FUNC:
                 case STRUCT:
-                case CLASS:
                 case FOR:
                 case IF:
                 case WHILE:
@@ -212,9 +212,9 @@ public class Parser {
         if (match(WALRUS)) {
             Token walrus = previous();
             Expr value = assignmentValue();
-            if (expr instanceof VariableExpr) {
-                Token identifier = ((VariableExpr) expr).getIdentifier();
-                return new AssignmentExpr(identifier, value);
+            if (expr instanceof VariableExpr
+                || expr instanceof GetExpr get && get.getExpr() instanceof SelfExpr) {
+                return new AssignmentExpr(expr, value);
             }
             error(walrus, "Invalid assignment target");
         }
@@ -225,13 +225,10 @@ public class Parser {
         Token identifier = consume(IDENTIFIER, "Expect identifier.");
         consume(WALRUS, "Expect walrus.");
         Expr value = assignmentValue();
-        return new AssignmentExpr(identifier, value);
+        return new AssignmentExpr(new VariableExpr(identifier), value);
     }
 
     private Expr assignmentValue() {
-        if (match(CLASS)) {
-            return classValue();
-        }
         if (match(STRUCT)) {
             return struct();
         }
@@ -243,24 +240,18 @@ public class Parser {
         }
     }
 
-    private Expr classValue() {
-        Token decl = previous();
-        consume(LEFT_BRACKET, "Expect '[' after class declaration.");
-        List<Token> params = params();
-        consume(LEFT_BRACKET, "Expect '[' before class body.");
-        List<AssignmentExpr> body = new ArrayList<>();
-        while (!check(RIGHT_BRACKET) && hasNext()) {
-            body.add(mandatoryAssignment());
-        }
-        consume(RIGHT_BRACKET, "Expect ']' after class body.");
-        return new StructExpr(decl, params, body);
-    }
-
     private Expr struct() {
         Token decl = previous();
         consume(LEFT_BRACKET, "Expect '[' after struct declaration.");
         List<Token> params = params();
-        return new StructExpr(decl, params, List.of());
+        List<AssignmentExpr> body = new ArrayList<>();
+        if (match(LEFT_BRACKET)) {
+            while (!check(RIGHT_BRACKET) && hasNext()) {
+                body.add(mandatoryAssignment());
+            }
+            consume(RIGHT_BRACKET, "Expect ']' after class body.");
+        }
+        return new StructExpr(decl, params, body);
     }
 
     private Expr func() {
@@ -384,6 +375,9 @@ public class Parser {
         }
         if (match(NUM, STR)) {
             return new LiteralExpr(previous().getValue());
+        }
+        if (match(SELF)) {
+            return new SelfExpr(previous());
         }
         if (match(IDENTIFIER)) {
             return new VariableExpr(previous());
