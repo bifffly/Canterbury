@@ -349,7 +349,7 @@ public class Parser {
     }
 
     private Expr unary() {
-        if (match(BANG, MINUS)) {
+        if (match(BANG, MINUS, BIT_NEG)) {
             Token op = previous();
             Expr right = unary();
             return new UnaryExpr(op, right);

@@ -156,6 +156,15 @@ public class Interpreter implements ExprVisitor<Object>, StmtVisitor<Object> {
         return a.equals(b);
     }
 
+    private void checkIntOperand(Token operator, Object operand) {
+        if (operand instanceof Double d) {
+            if (d == Math.rint(d)) {
+                return;
+            }
+        }
+        throw new RuntimeError(operator, "Operand must be an integer.");
+    }
+
     private void checkNumberOperand(Token operator, Object operand) {
         if (operand instanceof Double) {
             return;
@@ -169,7 +178,7 @@ public class Interpreter implements ExprVisitor<Object>, StmtVisitor<Object> {
                 return;
             }
         }
-        throw new RuntimeError(operator, "Operand must be an integer.");
+        throw new RuntimeError(operator, "Operands must be integers.");
     }
 
     private void checkNumberOperands(Token operator, Object left, Object right) {
@@ -302,9 +311,12 @@ public class Interpreter implements ExprVisitor<Object>, StmtVisitor<Object> {
         switch (expr.getOp().getType()) {
             case BANG: return !bool(o);
             case MINUS: {
-                checkNumberOperand(expr.getOp(), expr.getExpr());
+                checkNumberOperand(expr.getOp(), o);
                 return -(double) o;
             }
+            case BIT_NEG:
+                checkIntOperand(expr.getOp(), o);
+                return ~((Double) o).intValue();
             default: return null;
         }
     }

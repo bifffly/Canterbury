@@ -7,7 +7,8 @@ public enum TokenType {
     LEFT_BRACE, RIGHT_BRACE,
     MINUS, PLUS, STAR, SLASH,
     COMMA, COLON, BANG, EQUAL,
-    BIT_AND, BIT_OR, UNDERSCORE,
+    BIT_AND, BIT_OR, BIT_NEG,
+    UNDERSCORE,
 
     // Multi-char tokens
     AND, OR, UNEQUAL,

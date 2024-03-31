@@ -189,6 +189,7 @@ public class Tokenizer  {
             case '_': addToken(UNDERSCORE); break;
             case '&': addToken(BIT_AND); break;
             case '|': addToken(BIT_OR); break;
+            case '~': addToken(BIT_NEG); break;
             case 'λ': addToken(FUNC); break;
             case '-': addToken(match('>') ? ARROW : MINUS); break;
             case ':': addToken(match('=') ? WALRUS : COLON); break;
