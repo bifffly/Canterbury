@@ -6,23 +6,25 @@ import java.util.HashMap;
 
 public class Environment {
     private final Environment parent;
-    private final HashMap<String, Object> env = new HashMap<>();
+    private final HashMap<String, Object> env;
 
     public Environment() {
         this.parent = null;
+        this.env = new HashMap<>();
     }
 
     public Environment(Environment parent) {
         this.parent = parent;
+        this.env = new HashMap<>();
+    }
+
+    public Environment(Environment parent, HashMap<String, Object> env) {
+        this.parent = parent;
+        this.env = env;
     }
 
     public void define(String identifier, Object value) {
         env.put(identifier, value);
-        /*
-        if (parent != null) {
-            parent.define(identifier, value);
-        }
-        */
     }
 
     public Object get(Token identifier) {
@@ -33,5 +35,10 @@ public class Environment {
             return parent.get(identifier);
         }
         throw new RuntimeError(identifier, "Undefined variable " + identifier.getLexeme() + ".");
+    }
+
+    @Override
+    public Environment clone() {
+        return new Environment(parent, (HashMap<String, Object>) env.clone());
     }
 }

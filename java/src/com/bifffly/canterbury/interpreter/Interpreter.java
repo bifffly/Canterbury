@@ -195,7 +195,7 @@ public class Interpreter implements ExprVisitor<Object>, StmtVisitor<Object> {
 
     @Override
     public Object visitFuncExpr(FuncExpr expr) {
-        return new Function(expr, env);
+        return new Function(expr, env.clone());
     }
 
     @Override
