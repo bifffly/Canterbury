@@ -2,11 +2,14 @@ package com.bifffly.canterbury.parser.expr;
 
 import com.bifffly.canterbury.tokens.Token;
 import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.EqualsAndHashCode;
 import lombok.Getter;
 
 import java.util.List;
 
 @AllArgsConstructor
+@EqualsAndHashCode
 @Getter
 public class StructExpr implements Expr {
     private Token decl;

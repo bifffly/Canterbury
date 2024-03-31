@@ -1,9 +1,11 @@
 package com.bifffly.canterbury.interpreter;
 
 import com.bifffly.canterbury.tokens.Token;
+import lombok.EqualsAndHashCode;
 
 import java.util.HashMap;
 
+@EqualsAndHashCode
 public class Environment {
     private final Environment parent;
     private final HashMap<String, Object> env;

@@ -3,11 +3,13 @@ package com.bifffly.canterbury.parser.expr;
 import com.bifffly.canterbury.parser.stmt.BlockStmt;
 import com.bifffly.canterbury.tokens.Token;
 import lombok.AllArgsConstructor;
+import lombok.EqualsAndHashCode;
 import lombok.Getter;
 
 import java.util.List;
 
 @AllArgsConstructor
+@EqualsAndHashCode
 @Getter
 public class FuncExpr implements Expr {
     private Token decl;

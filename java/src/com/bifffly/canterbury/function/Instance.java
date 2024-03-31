@@ -2,9 +2,11 @@ package com.bifffly.canterbury.function;
 
 import com.bifffly.canterbury.interpreter.Environment;
 import com.bifffly.canterbury.tokens.Token;
+import lombok.EqualsAndHashCode;
 
 import java.util.List;
 
+@EqualsAndHashCode
 public class Instance {
     private final Struct struct;
     private final Environment env;

@@ -5,19 +5,17 @@ import com.bifffly.canterbury.interpreter.Interpreter;
 import com.bifffly.canterbury.parser.expr.FuncExpr;
 import com.bifffly.canterbury.tokens.Token;
 import lombok.AllArgsConstructor;
+import lombok.EqualsAndHashCode;
 import lombok.Getter;
 
 import java.util.List;
 
+@AllArgsConstructor
+@EqualsAndHashCode
 @Getter
 public class Function implements Callable {
     private final FuncExpr expr;
     private final Environment env;
-
-    public Function(FuncExpr expr, Environment env) {
-        this.expr = expr;
-        this.env = env;
-    }
 
     public Function bind(Instance instance) {
         Environment boundEnv = new Environment(env);

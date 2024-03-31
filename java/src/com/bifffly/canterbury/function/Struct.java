@@ -4,12 +4,14 @@ import com.bifffly.canterbury.interpreter.Interpreter;
 import com.bifffly.canterbury.parser.expr.StructExpr;
 import com.bifffly.canterbury.tokens.Token;
 import lombok.AllArgsConstructor;
+import lombok.EqualsAndHashCode;
 import lombok.Getter;
 
 import java.util.List;
 import java.util.Map;
 
 @AllArgsConstructor
+@EqualsAndHashCode
 @Getter
 public class Struct implements Callable {
     private final StructExpr expr;

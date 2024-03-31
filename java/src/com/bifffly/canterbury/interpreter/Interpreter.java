@@ -156,6 +156,17 @@ public class Interpreter implements ExprVisitor<Object>, StmtVisitor<Object> {
         return a.equals(b);
     }
 
+    private boolean isIdentical(Object a, Object b) {
+        if (a == null) {
+            return false;
+        }
+        if ((a instanceof Double && b instanceof Double)
+            || (a instanceof String && b instanceof String)) {
+            return a.equals(b);
+        }
+        return a == b;
+    }
+
     private void checkIntOperand(Token operator, Object operand) {
         if (operand instanceof Double d) {
             if (d == Math.rint(d)) {
@@ -230,6 +241,7 @@ public class Interpreter implements ExprVisitor<Object>, StmtVisitor<Object> {
             case GREATER_EQUAL: return (double) left >= (double) right;
             case EQUAL: return isEqual(left, right);
             case UNEQUAL: return !isEqual(left, right);
+            case IS: return isIdentical(left, right);
             default: return null;
         }
     }

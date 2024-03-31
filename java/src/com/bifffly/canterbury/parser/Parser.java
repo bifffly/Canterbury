@@ -300,7 +300,7 @@ public class Parser {
 
     private Expr equality() {
         Expr expr = comparison();
-        while (match(EQUAL, UNEQUAL)) {
+        while (match(EQUAL, UNEQUAL, IS)) {
             Token op = previous();
             Expr right = comparison();
             expr = new BinaryExpr(expr, op, right);
