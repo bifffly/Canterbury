@@ -23,6 +23,10 @@ public class Environment {
         this.env = env;
     }
 
+    public HashMap<String, Object> getEnv() {
+        return env;
+    }
+
     public void define(String identifier, Object value) {
         env.put(identifier, value);
     }

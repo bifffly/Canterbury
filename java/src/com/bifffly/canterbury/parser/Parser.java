@@ -4,9 +4,9 @@ import com.bifffly.canterbury.Canterbury;
 import com.bifffly.canterbury.parser.expr.AssignmentExpr;
 import com.bifffly.canterbury.parser.expr.BinaryExpr;
 import com.bifffly.canterbury.parser.expr.CallExpr;
-import com.bifffly.canterbury.parser.expr.ClassExpr;
 import com.bifffly.canterbury.parser.expr.Expr;
 import com.bifffly.canterbury.parser.expr.FuncExpr;
+import com.bifffly.canterbury.parser.expr.GetExpr;
 import com.bifffly.canterbury.parser.expr.GroupingExpr;
 import com.bifffly.canterbury.parser.expr.LiteralExpr;
 import com.bifffly.canterbury.parser.expr.StructExpr;
@@ -208,7 +208,7 @@ public class Parser {
     }
 
     private Expr assignment() {
-        Expr expr = or();
+        Expr expr = assignmentValue();
         if (match(WALRUS)) {
             Token walrus = previous();
             Expr value = assignmentValue();
@@ -253,14 +253,14 @@ public class Parser {
             body.add(mandatoryAssignment());
         }
         consume(RIGHT_BRACKET, "Expect ']' after class body.");
-        return new ClassExpr(decl, params, body);
+        return new StructExpr(decl, params, body);
     }
 
     private Expr struct() {
         Token decl = previous();
         consume(LEFT_BRACKET, "Expect '[' after struct declaration.");
         List<Token> params = params();
-        return new StructExpr(decl, params);
+        return new StructExpr(decl, params, List.of());
     }
 
     private Expr func() {
@@ -348,6 +348,9 @@ public class Parser {
         while (true) {
             if (match(LEFT_BRACKET)) {
                 expr = completeCall(expr);
+            } else if (check(IDENTIFIER)) {
+                Token identifier = consume(IDENTIFIER, "Expect attribute name.");
+                expr = new GetExpr(expr, identifier);
             } else {
                 break;
             }

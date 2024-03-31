@@ -3,12 +3,14 @@ package com.bifffly.canterbury.interpreter;
 import com.bifffly.canterbury.Canterbury;
 import com.bifffly.canterbury.function.Callable;
 import com.bifffly.canterbury.function.Function;
+import com.bifffly.canterbury.function.Instance;
+import com.bifffly.canterbury.function.Struct;
 import com.bifffly.canterbury.parser.expr.AssignmentExpr;
 import com.bifffly.canterbury.parser.expr.BinaryExpr;
 import com.bifffly.canterbury.parser.expr.CallExpr;
-import com.bifffly.canterbury.parser.expr.ClassExpr;
 import com.bifffly.canterbury.parser.expr.Expr;
 import com.bifffly.canterbury.parser.expr.FuncExpr;
+import com.bifffly.canterbury.parser.expr.GetExpr;
 import com.bifffly.canterbury.parser.expr.GroupingExpr;
 import com.bifffly.canterbury.parser.expr.LiteralExpr;
 import com.bifffly.canterbury.parser.expr.StructExpr;
@@ -23,7 +25,9 @@ import com.bifffly.canterbury.parser.stmt.StmtVisitor;
 import com.bifffly.canterbury.parser.stmt.WhileStmt;
 import com.bifffly.canterbury.tokens.Token;
 
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 public class Interpreter implements ExprVisitor<Object>, StmtVisitor<Object> {
     private final Environment globals = new Environment();
@@ -56,7 +60,7 @@ public class Interpreter implements ExprVisitor<Object>, StmtVisitor<Object> {
 
             @Override
             public Object call(Interpreter interpreter, List<Object> args) {
-                System.out.println(args.get(0));
+                System.out.println(stringify(args.get(0)));
                 return null;
             }
 
@@ -98,6 +102,20 @@ public class Interpreter implements ExprVisitor<Object>, StmtVisitor<Object> {
             this.env = parent;
         }
         return returnValue;
+    }
+
+    private String stringify(Object o) {
+        if (o == null) {
+            return "null";
+        }
+        if (o instanceof Double) {
+            String str = o.toString();
+            if (str.endsWith(".0")) {
+                str = str.substring(0, str.length() - 2);
+            }
+            return str;
+        }
+        return o.toString();
     }
 
     private boolean bool(Object o) {
@@ -181,21 +199,25 @@ public class Interpreter implements ExprVisitor<Object>, StmtVisitor<Object> {
         if (!(callee instanceof Callable)) {
             throw  new RuntimeError(expr.getBracket(), "Expected callable object.");
         }
-        Callable func = (Callable) callee;
-        if (args.size() != func.arity()) {
-            throw new RuntimeError(expr.getBracket(), "Expected " + func.arity() + "args, received " + args.size() + ".");
+        Callable callable = (Callable) callee;
+        if (args.size() != callable.arity()) {
+            throw new RuntimeError(expr.getBracket(), "Expected " + callable.arity() + "args, received " + args.size() + ".");
         }
-        return func.call(this, args);
-    }
-
-    @Override
-    public Object visitClassExpr(ClassExpr expr) {
-        return "class " + expr.getParams() + " " + expr.getBody();
+        return callable.call(this, args);
     }
 
     @Override
     public Object visitFuncExpr(FuncExpr expr) {
         return new Function(expr, env.clone());
+    }
+
+    @Override
+    public Object visitGetExpr(GetExpr expr) {
+        Object o = eval(expr.getExpr());
+        if (o instanceof Instance instance) {
+            return instance.get(expr.getIdentifier());
+        }
+        throw new RuntimeError(expr.getIdentifier(), "Cannot retrieve property.");
     }
 
     @Override
@@ -210,7 +232,13 @@ public class Interpreter implements ExprVisitor<Object>, StmtVisitor<Object> {
 
     @Override
     public Object visitStructExpr(StructExpr expr) {
-        return "struct " + expr.getParams();
+        Map<String, Object> attributes = new HashMap<>();
+        for (AssignmentExpr assignmentExpr : expr.getBody()) {
+            String name = assignmentExpr.getIdentifier().getLexeme();
+            Object value = eval(assignmentExpr.getValue());
+            attributes.put(name, value);
+        }
+        return new Struct(expr, attributes);
     }
 
     @Override

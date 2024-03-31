@@ -4,9 +4,12 @@ import com.bifffly.canterbury.interpreter.Environment;
 import com.bifffly.canterbury.interpreter.Interpreter;
 import com.bifffly.canterbury.parser.expr.FuncExpr;
 import com.bifffly.canterbury.tokens.Token;
+import lombok.AllArgsConstructor;
+import lombok.Getter;
 
 import java.util.List;
 
+@Getter
 public class Function implements Callable {
     private final FuncExpr expr;
     private final Environment env;

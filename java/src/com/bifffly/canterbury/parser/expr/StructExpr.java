@@ -11,6 +11,7 @@ import java.util.List;
 public class StructExpr implements Expr {
     private Token decl;
     private List<Token> params;
+    private List<AssignmentExpr> body;
 
     @Override
     public <T> T accept(ExprVisitor<T> exprVisitor) {
