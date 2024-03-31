@@ -30,6 +30,7 @@ public class Tokenizer  {
         KEYWORDS.put("true", TRUE);
         KEYWORDS.put("false", FALSE);
         KEYWORDS.put("null", NULL);
+        KEYWORDS.put("import", IMPORT);
     }
 
     private final String src;
@@ -184,6 +185,7 @@ public class Tokenizer  {
             case '*': addToken(STAR); break;
             case '/': addToken(SLASH); break;
             case ',': addToken(COMMA); break;
+            case ';': addToken(SEMICOLON); break;
             case '!': addToken(BANG); break;
             case '=': addToken(EQUAL); break;
             case '_': addToken(UNDERSCORE); break;

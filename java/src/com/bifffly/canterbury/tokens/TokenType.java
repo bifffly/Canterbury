@@ -8,7 +8,7 @@ public enum TokenType {
     MINUS, PLUS, STAR, SLASH,
     COMMA, COLON, BANG, EQUAL,
     BIT_AND, BIT_OR, BIT_NEG,
-    UNDERSCORE,
+    UNDERSCORE, SEMICOLON,
 
     // Multi-char tokens
     AND, OR, UNEQUAL,
@@ -24,6 +24,7 @@ public enum TokenType {
     FOR, WHILE, IF, ELIF, ELSE,
     MATCH, AGAINST, IS,
     TRUE, FALSE, NULL,
+    IMPORT,
 
     EOF;
 }

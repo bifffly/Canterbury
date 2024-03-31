@@ -4,5 +4,6 @@ public interface StmtVisitor<T> {
     T visitBlockStmt(BlockStmt stmt);
     T visitExpressionStmt(ExpressionStmt stmt);
     T visitIfStmt(IfStmt stmt);
+    T visitImportStmt(ImportStmt stmt);
     T visitWhileStmt(WhileStmt stmt);
 }

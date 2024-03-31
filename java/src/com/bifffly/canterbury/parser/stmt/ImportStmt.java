@@ -1,20 +1,21 @@
 package com.bifffly.canterbury.parser.stmt;
 
-import com.bifffly.canterbury.parser.expr.Expr;
+import com.bifffly.canterbury.tokens.Token;
 import lombok.AllArgsConstructor;
 import lombok.EqualsAndHashCode;
 import lombok.Getter;
 
+import java.util.List;
+
 @AllArgsConstructor
 @EqualsAndHashCode
 @Getter
-public class IfStmt implements Stmt {
-    private Expr condition;
-    private Stmt thenBranch;
-    private Stmt elseBranch;
+public class ImportStmt implements Stmt {
+    private Token module;
+    private List<Token> imports;
 
     @Override
     public <T> Object accept(StmtVisitor<T> stmtVisitor) {
-        return stmtVisitor.visitIfStmt(this);
+        return stmtVisitor.visitImportStmt(this);
     }
 }

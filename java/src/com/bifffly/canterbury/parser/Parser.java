@@ -17,6 +17,7 @@ import com.bifffly.canterbury.parser.expr.VariableExpr;
 import com.bifffly.canterbury.parser.stmt.BlockStmt;
 import com.bifffly.canterbury.parser.stmt.ExpressionStmt;
 import com.bifffly.canterbury.parser.stmt.IfStmt;
+import com.bifffly.canterbury.parser.stmt.ImportStmt;
 import com.bifffly.canterbury.parser.stmt.Stmt;
 import com.bifffly.canterbury.parser.stmt.WhileStmt;
 import com.bifffly.canterbury.tokens.Token;
@@ -107,6 +108,9 @@ public class Parser {
     }
 
     private Stmt statement() {
+        if (match(IMPORT)) {
+            return importStatement();
+        }
         if (match(IF)) {
             return ifStatement();
         }
@@ -120,6 +124,22 @@ public class Parser {
             return blockStatement();
         }
         return expressionStatement();
+    }
+
+    private Stmt importStatement() {
+        Token module = consume(IDENTIFIER, "Expect module name after 'import'.");
+        consume(LEFT_BRACKET, "Expect '[' after module name");
+        List<Token> imports = new ArrayList<>();
+        if (!check(RIGHT_BRACKET)) {
+            do {
+                if (imports.size() >= 128) {
+                    error(peek(), "Expected fewer than 128 imports.");
+                }
+                imports.add(consume(IDENTIFIER, "Expected import name."));
+            } while (match(COMMA));
+        }
+        consume(RIGHT_BRACKET, "Expect ']' after imports.");
+        return new ImportStmt(module, imports);
     }
 
     private Stmt ifStatement() {
@@ -201,6 +221,7 @@ public class Parser {
 
     private Stmt expressionStatement() {
         Expr expr = expression();
+        consume(SEMICOLON, "Expect ';' after expression.");
         return new ExpressionStmt(expr);
     }
 
@@ -226,6 +247,7 @@ public class Parser {
         Token identifier = consume(IDENTIFIER, "Expect identifier.");
         consume(WALRUS, "Expect walrus.");
         Expr value = assignmentValue();
+        consume(SEMICOLON, "Expect ';' after expression.");
         return new AssignmentExpr(new VariableExpr(identifier), value);
     }
 

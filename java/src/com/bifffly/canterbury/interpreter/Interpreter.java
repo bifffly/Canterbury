@@ -1,10 +1,12 @@
 package com.bifffly.canterbury.interpreter;
 
 import com.bifffly.canterbury.Canterbury;
-import com.bifffly.canterbury.function.Callable;
-import com.bifffly.canterbury.function.Function;
-import com.bifffly.canterbury.function.Instance;
-import com.bifffly.canterbury.function.Struct;
+import com.bifffly.canterbury.modules.StandardLibrary;
+import com.bifffly.canterbury.object.Callable;
+import com.bifffly.canterbury.object.Function;
+import com.bifffly.canterbury.object.Instance;
+import com.bifffly.canterbury.modules.Module;
+import com.bifffly.canterbury.object.Struct;
 import com.bifffly.canterbury.parser.expr.AssignmentExpr;
 import com.bifffly.canterbury.parser.expr.BinaryExpr;
 import com.bifffly.canterbury.parser.expr.CallExpr;
@@ -22,6 +24,7 @@ import com.bifffly.canterbury.parser.expr.VariableExpr;
 import com.bifffly.canterbury.parser.stmt.BlockStmt;
 import com.bifffly.canterbury.parser.stmt.ExpressionStmt;
 import com.bifffly.canterbury.parser.stmt.IfStmt;
+import com.bifffly.canterbury.parser.stmt.ImportStmt;
 import com.bifffly.canterbury.parser.stmt.Stmt;
 import com.bifffly.canterbury.parser.stmt.StmtVisitor;
 import com.bifffly.canterbury.parser.stmt.WhileStmt;
@@ -37,52 +40,8 @@ public class Interpreter implements ExprVisitor<Object>, StmtVisitor<Object> {
     private boolean blockScope = true;
 
     public Interpreter() {
-        globals.define("clock", new Callable() {
-            @Override
-            public int arity() {
-                return 0;
-            }
-
-            @Override
-            public Object call(Interpreter interpreter, List<Object> args) {
-                return (double) System.currentTimeMillis() / 1000;
-            }
-
-            @Override
-            public String toString() {
-                return "<native func clock>";
-            }
-        });
-
-        globals.define("print", new Callable() {
-            @Override
-            public int arity() {
-                return 1;
-            }
-
-            @Override
-            public Object call(Interpreter interpreter, List<Object> args) {
-                System.out.println(stringify(args.get(0)));
-                return null;
-            }
-
-            @Override
-            public String toString() {
-                return "<native func print>";
-            }
-        });
-
-        globals.define("sqrt", new Callable() {
-            @Override
-            public int arity() {
-                return 1;
-            }
-
-            @Override
-            public Object call(Interpreter interpreter, List<Object> args) {
-                return Math.sqrt((double) args.get(0));
-            }
-        });
+        StandardLibrary stdlib = new StandardLibrary();
+        stdlib.getModules().forEach((module) -> globals.define(module.getName(), module));
     }
 
     public Environment getEnv() {
@@ -125,6 +84,9 @@ public class Interpreter implements ExprVisitor<Object>, StmtVisitor<Object> {
     private String stringify(Object o) {
         if (o == null) {
             return "null";
+        }
+        if (o instanceof Module module) {
+            return "<module " + module.getName() + ">";
         }
         if (o instanceof Double) {
             String str = o.toString();
@@ -273,6 +235,9 @@ public class Interpreter implements ExprVisitor<Object>, StmtVisitor<Object> {
         if (o instanceof Instance instance) {
             return instance.get(expr.getIdentifier());
         }
+        if (o instanceof Module module) {
+            return module.get(expr.getIdentifier());
+        }
         throw new RuntimeError(expr.getIdentifier(), "Cannot retrieve property.");
     }
 
@@ -359,6 +324,17 @@ public class Interpreter implements ExprVisitor<Object>, StmtVisitor<Object> {
             return exec(stmt.getThenBranch());
         } else if (stmt.getElseBranch() != null) {
             return exec(stmt.getElseBranch());
+        }
+        return null;
+    }
+
+    @Override
+    public Object visitImportStmt(ImportStmt stmt) {
+        Object o = eval(new VariableExpr(stmt.getModule()));
+        if (o instanceof Module module) {
+            stmt.getImports().forEach((token) -> {
+                env.define(token.getLexeme(), module.get(token));
+            });
         }
         return null;
     }

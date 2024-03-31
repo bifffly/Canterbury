@@ -1,4 +1,4 @@
-package com.bifffly.canterbury.function;
+package com.bifffly.canterbury.object;
 
 import com.bifffly.canterbury.interpreter.Interpreter;
 import com.bifffly.canterbury.parser.expr.StructExpr;

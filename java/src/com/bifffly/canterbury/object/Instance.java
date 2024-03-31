@@ -1,4 +1,4 @@
-package com.bifffly.canterbury.function;
+package com.bifffly.canterbury.object;
 
 import com.bifffly.canterbury.interpreter.Environment;
 import com.bifffly.canterbury.tokens.Token;
