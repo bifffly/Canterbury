@@ -26,6 +26,8 @@ repositories {
 }
 
 dependencies {
+    compileOnly("org.projectlombok:lombok:1.18.32")
+    annotationProcessor("org.projectlombok:lombok:1.18.32")
     implementation("org.junit.jupiter:junit-jupiter-api:5.8.1")
     implementation("org.junit.jupiter:junit-jupiter-engine:5.8.1")
 }
