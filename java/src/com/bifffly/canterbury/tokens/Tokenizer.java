@@ -118,7 +118,7 @@ public class Tokenizer  {
         while (isBinary(peek())) {
             advance();
         }
-        addToken(NUM, Integer.parseInt(src.substring(numStart, curr), 2));
+        addToken(NUM, (double) Integer.parseInt(src.substring(numStart, curr), 2));
     }
 
     private void hex() {
@@ -126,7 +126,7 @@ public class Tokenizer  {
         while (isHex(peek())) {
             advance();
         }
-        addToken(NUM, Integer.parseInt(src.substring(numStart, curr), 16));
+        addToken(NUM, (double) Integer.parseInt(src.substring(numStart, curr), 16));
     }
 
     private void number() {

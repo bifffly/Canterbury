@@ -13,6 +13,7 @@ import com.bifffly.canterbury.parser.expr.FuncExpr;
 import com.bifffly.canterbury.parser.expr.GetExpr;
 import com.bifffly.canterbury.parser.expr.GroupingExpr;
 import com.bifffly.canterbury.parser.expr.LiteralExpr;
+import com.bifffly.canterbury.parser.expr.LogicalExpr;
 import com.bifffly.canterbury.parser.expr.SelfExpr;
 import com.bifffly.canterbury.parser.expr.StructExpr;
 import com.bifffly.canterbury.parser.expr.UnaryExpr;
@@ -68,6 +69,18 @@ public class Interpreter implements ExprVisitor<Object>, StmtVisitor<Object> {
             @Override
             public String toString() {
                 return "<native func print>";
+            }
+        });
+
+        globals.define("sqrt", new Callable() {
+            @Override
+            public int arity() {
+                return 1;
+            }
+
+            @Override
+            public Object call(Interpreter interpreter, List<Object> args) {
+                return Math.sqrt((double) args.get(0));
             }
         });
     }
@@ -150,6 +163,15 @@ public class Interpreter implements ExprVisitor<Object>, StmtVisitor<Object> {
         throw new RuntimeError(operator, "Operand must be a number.");
     }
 
+    private void checkIntOperands(Token operator, Object left, Object right) {
+        if (left instanceof Double doubleLeft && right instanceof Double doubleRight) {
+            if (doubleLeft == Math.rint(doubleLeft) && doubleRight == Math.rint(doubleRight)) {
+                return;
+            }
+        }
+        throw new RuntimeError(operator, "Operand must be an integer.");
+    }
+
     private void checkNumberOperands(Token operator, Object left, Object right) {
         if (left instanceof Double && right instanceof Double) {
             return;
@@ -174,6 +196,8 @@ public class Interpreter implements ExprVisitor<Object>, StmtVisitor<Object> {
         Object right = eval(expr.getRight());
 
         switch (expr.getOp().getType()) {
+            case BIT_OR:
+            case BIT_AND: checkIntOperands(expr.getOp(), left, right); break;
             case PLUS:
             case MINUS:
             case SLASH:
@@ -185,6 +209,8 @@ public class Interpreter implements ExprVisitor<Object>, StmtVisitor<Object> {
         }
 
         switch (expr.getOp().getType()) {
+            case BIT_OR: return ((Double) left).intValue() | ((Double) right).intValue();
+            case BIT_AND: return ((Double) left).intValue() & ((Double) right).intValue();
             case PLUS: return (double) left + (double) right;
             case MINUS: return (double) left - (double) right;
             case SLASH: return (double) left / (double) right;
@@ -237,6 +263,18 @@ public class Interpreter implements ExprVisitor<Object>, StmtVisitor<Object> {
     @Override
     public Object visitLiteralExpr(LiteralExpr expr) {
         return expr.getValue();
+    }
+
+    @Override
+    public Object visitLogicalExpr(LogicalExpr expr) {
+        Object left = eval(expr.getLeft());
+        Object right = eval(expr.getRight());
+
+        switch (expr.getOp().getType()) {
+            case OR: return bool(left) || bool(right);
+            case AND: return bool(left) && bool(right);
+            default: return null;
+        }
     }
 
     @Override

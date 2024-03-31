@@ -9,6 +9,7 @@ import com.bifffly.canterbury.parser.expr.FuncExpr;
 import com.bifffly.canterbury.parser.expr.GetExpr;
 import com.bifffly.canterbury.parser.expr.GroupingExpr;
 import com.bifffly.canterbury.parser.expr.LiteralExpr;
+import com.bifffly.canterbury.parser.expr.LogicalExpr;
 import com.bifffly.canterbury.parser.expr.SelfExpr;
 import com.bifffly.canterbury.parser.expr.StructExpr;
 import com.bifffly.canterbury.parser.expr.UnaryExpr;
@@ -278,11 +279,23 @@ public class Parser {
     }
 
     private Expr or() {
-        return and();
+        Expr expr = and();
+        while (match(OR)) {
+            Token op = previous();
+            Expr right = and();
+            expr = new LogicalExpr(expr, op, right);
+        }
+        return expr;
     }
 
     private Expr and() {
-        return equality();
+        Expr expr = equality();
+        while (match(AND)) {
+            Token op = previous();
+            Expr right = and();
+            expr = new LogicalExpr(expr, op, right);
+        }
+        return expr;
     }
 
     private Expr equality() {
@@ -296,8 +309,18 @@ public class Parser {
     }
 
     private Expr comparison() {
-        Expr expr = term();
+        Expr expr = bitwise();
         while (match(LESSER, LESSER_EQUAL, GREATER, GREATER_EQUAL)) {
+            Token op = previous();
+            Expr right = bitwise();
+            expr = new BinaryExpr(expr, op, right);
+        }
+        return expr;
+    }
+
+    private Expr bitwise() {
+        Expr expr = term();
+        while (match(BIT_OR, BIT_AND)) {
             Token op = previous();
             Expr right = term();
             expr = new BinaryExpr(expr, op, right);
