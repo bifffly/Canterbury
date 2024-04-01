@@ -31,6 +31,7 @@ public class Tokenizer  {
         KEYWORDS.put("false", FALSE);
         KEYWORDS.put("null", NULL);
         KEYWORDS.put("import", IMPORT);
+        KEYWORDS.put("return", RETURN);
     }
 
     private final String src;

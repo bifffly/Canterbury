@@ -10,6 +10,7 @@ import com.bifffly.canterbury.object.Struct;
 import com.bifffly.canterbury.parser.expr.AssignmentExpr;
 import com.bifffly.canterbury.parser.expr.BinaryExpr;
 import com.bifffly.canterbury.parser.expr.CallExpr;
+import com.bifffly.canterbury.parser.expr.CaseExpr;
 import com.bifffly.canterbury.parser.expr.Expr;
 import com.bifffly.canterbury.parser.expr.FuncExpr;
 import com.bifffly.canterbury.parser.expr.GetExpr;
@@ -25,6 +26,8 @@ import com.bifffly.canterbury.parser.stmt.BlockStmt;
 import com.bifffly.canterbury.parser.stmt.ExpressionStmt;
 import com.bifffly.canterbury.parser.stmt.IfStmt;
 import com.bifffly.canterbury.parser.stmt.ImportStmt;
+import com.bifffly.canterbury.parser.stmt.MatchStmt;
+import com.bifffly.canterbury.parser.stmt.ReturnStmt;
 import com.bifffly.canterbury.parser.stmt.Stmt;
 import com.bifffly.canterbury.parser.stmt.StmtVisitor;
 import com.bifffly.canterbury.parser.stmt.WhileStmt;
@@ -33,6 +36,8 @@ import com.bifffly.canterbury.tokens.Token;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+
+import static com.bifffly.canterbury.tokens.TokenType.*;
 
 public class Interpreter implements ExprVisitor<Object>, StmtVisitor<Object> {
     private final Environment globals = new Environment();
@@ -81,7 +86,7 @@ public class Interpreter implements ExprVisitor<Object>, StmtVisitor<Object> {
         return returnValue;
     }
 
-    private String stringify(Object o) {
+    public static String stringify(Object o) {
         if (o == null) {
             return "null";
         }
@@ -166,6 +171,9 @@ public class Interpreter implements ExprVisitor<Object>, StmtVisitor<Object> {
         Object value = eval(expr.getValue());
         if (expr.getTarget() instanceof VariableExpr varExpr) {
             env.define(varExpr.getIdentifier().getLexeme(), value);
+            if (value instanceof Function func) {
+                func.getEnv().define(varExpr.getIdentifier().getLexeme(), value);
+            }
         } else if (expr.getTarget() instanceof GetExpr get && get.getExpr() instanceof SelfExpr self) {
             ((Instance) env.get(self.getSelf())).define(get.getIdentifier(), value);
         }
@@ -222,6 +230,11 @@ public class Interpreter implements ExprVisitor<Object>, StmtVisitor<Object> {
             throw new RuntimeError(expr.getBracket(), "Expected " + callable.arity() + "args, received " + args.size() + ".");
         }
         return callable.call(this, args);
+    }
+
+    @Override
+    public Object visitCaseExpr(CaseExpr expr) {
+        return exec(expr.getThen());
     }
 
     @Override
@@ -337,6 +350,30 @@ public class Interpreter implements ExprVisitor<Object>, StmtVisitor<Object> {
             });
         }
         return null;
+    }
+
+    @Override
+    public Object visitMatchStmt(MatchStmt stmt) {
+        Object o = eval(stmt.getExpr());
+        for (CaseExpr expr : stmt.getCases()) {
+            if (expr.getCondition() instanceof VariableExpr varExpr && varExpr.getIdentifier().getType() == UNDERSCORE) {
+                env.define(varExpr.getIdentifier().getLexeme(), o);
+            }
+            Object compare = eval(expr.getCondition());
+            if (isEqual(o, compare)) {
+                return eval(expr);
+            }
+        }
+        return null;
+    }
+
+    @Override
+    public Object visitReturnStmt(ReturnStmt stmt) {
+        Object value = null;
+        if (stmt.getValue() != null) {
+            value = eval(stmt.getValue());
+        }
+        throw new Return(value);
     }
 
     @Override

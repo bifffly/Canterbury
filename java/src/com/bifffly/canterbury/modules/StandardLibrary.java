@@ -5,6 +5,8 @@ import lombok.Getter;
 import java.util.List;
 import java.util.function.Function;
 
+import static com.bifffly.canterbury.interpreter.Interpreter.stringify;
+
 @Getter
 public class StandardLibrary {
     private List<Module> modules;
@@ -23,7 +25,7 @@ public class StandardLibrary {
 
         Module io = new Module("IO");
         io.defineNativeFunction("print", 1, (arg) -> {
-            System.out.println(arg);
+            System.out.println(stringify(arg));
             return null;
         });
 

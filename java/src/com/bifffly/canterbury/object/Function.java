@@ -2,6 +2,7 @@ package com.bifffly.canterbury.object;
 
 import com.bifffly.canterbury.interpreter.Environment;
 import com.bifffly.canterbury.interpreter.Interpreter;
+import com.bifffly.canterbury.interpreter.Return;
 import com.bifffly.canterbury.parser.expr.FuncExpr;
 import com.bifffly.canterbury.tokens.Token;
 import lombok.AllArgsConstructor;
@@ -35,7 +36,12 @@ public class Function implements Callable {
         for (int i = 0; i < arity(); i++) {
             local.define(params.get(i).getLexeme(), args.get(i));
         }
-        return interpreter.execBlock(expr.getBody().getStatements(), local);
+        try {
+            interpreter.execBlock(expr.getBody().getStatements(), local);
+        } catch (Return value) {
+            return value.getValue();
+        }
+        return null;
     }
 
     @Override

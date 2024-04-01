@@ -4,6 +4,7 @@ public interface ExprVisitor<T> {
     T visitAssignmentExpr(AssignmentExpr expr);
     T visitBinaryExpr(BinaryExpr expr);
     T visitCallExpr(CallExpr expr);
+    T visitCaseExpr(CaseExpr expr);
     T visitFuncExpr(FuncExpr expr);
     T visitGetExpr(GetExpr expr);
     T visitGroupingExpr(GroupingExpr expr);

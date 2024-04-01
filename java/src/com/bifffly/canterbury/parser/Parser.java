@@ -4,6 +4,7 @@ import com.bifffly.canterbury.Canterbury;
 import com.bifffly.canterbury.parser.expr.AssignmentExpr;
 import com.bifffly.canterbury.parser.expr.BinaryExpr;
 import com.bifffly.canterbury.parser.expr.CallExpr;
+import com.bifffly.canterbury.parser.expr.CaseExpr;
 import com.bifffly.canterbury.parser.expr.Expr;
 import com.bifffly.canterbury.parser.expr.FuncExpr;
 import com.bifffly.canterbury.parser.expr.GetExpr;
@@ -18,6 +19,8 @@ import com.bifffly.canterbury.parser.stmt.BlockStmt;
 import com.bifffly.canterbury.parser.stmt.ExpressionStmt;
 import com.bifffly.canterbury.parser.stmt.IfStmt;
 import com.bifffly.canterbury.parser.stmt.ImportStmt;
+import com.bifffly.canterbury.parser.stmt.MatchStmt;
+import com.bifffly.canterbury.parser.stmt.ReturnStmt;
 import com.bifffly.canterbury.parser.stmt.Stmt;
 import com.bifffly.canterbury.parser.stmt.WhileStmt;
 import com.bifffly.canterbury.tokens.Token;
@@ -111,6 +114,9 @@ public class Parser {
         if (match(IMPORT)) {
             return importStatement();
         }
+        if (match(RETURN)) {
+            return returnStatement();
+        }
         if (match(IF)) {
             return ifStatement();
         }
@@ -119,6 +125,9 @@ public class Parser {
         }
         if (match(WHILE)) {
             return whileStatement();
+        }
+        if (match(MATCH)) {
+            return matchStatment();
         }
         if (match(LEFT_BRACKET)) {
             return blockStatement();
@@ -140,6 +149,16 @@ public class Parser {
         }
         consume(RIGHT_BRACKET, "Expect ']' after imports.");
         return new ImportStmt(module, imports);
+    }
+
+    private Stmt returnStatement() {
+        Token token = previous();
+        Expr value = null;
+        if (!check(SEMICOLON)) {
+            value = expression();
+        }
+        consume(SEMICOLON, "Expect ';' after return statement.");
+        return new ReturnStmt(token, value);
     }
 
     private Stmt ifStatement() {
@@ -206,6 +225,30 @@ public class Parser {
         consume(LEFT_BRACKET, "Expect '[' before loop body.");
         Stmt body = blockStatement();
         return new WhileStmt(condition, body);
+    }
+
+    private CaseExpr matchCase() {
+        consume(LEFT_BRACKET, "Expect '[' before case body.");
+        Expr condition = expression();
+        consume(ARROW, "Expect '->' in case body.");
+        Stmt then = statement();
+        consume(RIGHT_BRACKET, "Expect ']' after case body.");
+        return new CaseExpr(condition, then);
+    }
+
+    private Stmt matchStatment() {
+        Token token = previous();
+        consume(LEFT_BRACKET, "Expect '[' after 'match'.");
+        Expr expr = expression();
+        consume(RIGHT_BRACKET, "Expect ']' after expression.");
+        consume(AGAINST, "Expect 'against' before match body.");
+        consume(LEFT_BRACKET, "Expect '[' before match body.");
+        List<CaseExpr> cases = new ArrayList<>();
+        while(!check(RIGHT_BRACKET)) {
+            cases.add(matchCase());
+        }
+        consume(RIGHT_BRACKET, "Expect ']' after match body.");
+        return new MatchStmt(token, expr, cases);
     }
 
     private Stmt blockStatement() {
@@ -424,7 +467,7 @@ public class Parser {
         if (match(SELF)) {
             return new SelfExpr(previous());
         }
-        if (match(IDENTIFIER)) {
+        if (match(IDENTIFIER, UNDERSCORE)) {
             return new VariableExpr(previous());
         }
         if (match(LEFT_BRACKET)) {

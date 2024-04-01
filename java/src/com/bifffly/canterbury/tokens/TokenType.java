@@ -24,7 +24,7 @@ public enum TokenType {
     FOR, WHILE, IF, ELIF, ELSE,
     MATCH, AGAINST, IS,
     TRUE, FALSE, NULL,
-    IMPORT,
+    IMPORT, RETURN,
 
     EOF;
 }
