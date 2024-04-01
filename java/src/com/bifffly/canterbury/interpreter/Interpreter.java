@@ -26,7 +26,7 @@ import com.bifffly.canterbury.parser.stmt.BlockStmt;
 import com.bifffly.canterbury.parser.stmt.ExpressionStmt;
 import com.bifffly.canterbury.parser.stmt.IfStmt;
 import com.bifffly.canterbury.parser.stmt.ImportStmt;
-import com.bifffly.canterbury.parser.stmt.MatchStmt;
+import com.bifffly.canterbury.parser.expr.MatchExpr;
 import com.bifffly.canterbury.parser.stmt.ReturnStmt;
 import com.bifffly.canterbury.parser.stmt.Stmt;
 import com.bifffly.canterbury.parser.stmt.StmtVisitor;
@@ -277,6 +277,22 @@ public class Interpreter implements ExprVisitor<Object>, StmtVisitor<Object> {
     }
 
     @Override
+    public Object visitMatchExpr(MatchExpr expr) {
+        Object o = eval(expr.getExpr());
+        for (CaseExpr caseExpr: expr.getCases()) {
+            if (caseExpr.getCondition() instanceof VariableExpr varExpr
+                && varExpr.getIdentifier().getType() == UNDERSCORE) {
+                env.define(varExpr.getIdentifier().getLexeme(), o);
+            }
+            Object compare = eval(caseExpr.getCondition());
+            if (isEqual(o, compare)) {
+                return eval(caseExpr);
+            }
+        }
+        return null;
+    }
+
+    @Override
     public Object visitSelfExpr(SelfExpr expr) {
         return env.get(expr.getSelf());
     }
@@ -348,21 +364,6 @@ public class Interpreter implements ExprVisitor<Object>, StmtVisitor<Object> {
             stmt.getImports().forEach((token) -> {
                 env.define(token.getLexeme(), module.get(token));
             });
-        }
-        return null;
-    }
-
-    @Override
-    public Object visitMatchStmt(MatchStmt stmt) {
-        Object o = eval(stmt.getExpr());
-        for (CaseExpr expr : stmt.getCases()) {
-            if (expr.getCondition() instanceof VariableExpr varExpr && varExpr.getIdentifier().getType() == UNDERSCORE) {
-                env.define(varExpr.getIdentifier().getLexeme(), o);
-            }
-            Object compare = eval(expr.getCondition());
-            if (isEqual(o, compare)) {
-                return eval(expr);
-            }
         }
         return null;
     }

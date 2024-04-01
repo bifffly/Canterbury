@@ -10,6 +10,7 @@ public interface ExprVisitor<T> {
     T visitGroupingExpr(GroupingExpr expr);
     T visitLiteralExpr(LiteralExpr expr);
     T visitLogicalExpr(LogicalExpr expr);
+    T visitMatchExpr(MatchExpr expr);
     T visitSelfExpr(SelfExpr expr);
     T visitStructExpr(StructExpr expr);
     T visitUnaryExpr(UnaryExpr expr);
