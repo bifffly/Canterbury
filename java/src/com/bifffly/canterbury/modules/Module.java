@@ -37,15 +37,20 @@ public class Module {
 
             @Override
             public Object call(Interpreter interpreter, List<Object> args) {
+                Object returnValue = null;
                 if (arity == 0) {
-                    return value.apply(null);
+                    returnValue = value.apply(null);
                 }
-                int i = 0;
-                Function<Object, Object> returnValue = (Function<Object, Object>) value.apply(args.get(i));
-                for (i = 1; i < arity - 1; i++) {
-                    returnValue = (Function<Object, Object>) returnValue.apply(args.get(i));
+                if (arity > 0) {
+                    returnValue = value.apply(args.get(0));
+                    if (arity > 1) {
+                        for (int i = 1; i < arity; i++) {
+                            Function<Object, Object> func = (Function<Object, Object>) returnValue;
+                            returnValue = func.apply(args.get(i));
+                        }
+                    }
                 }
-                return returnValue.apply(args.get(arity - 1));
+                return returnValue;
             }
 
             @Override
