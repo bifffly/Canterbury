@@ -8,4 +8,5 @@ add_executable(canterbury
     src/common.h
     src/chunk.h src/chunk.c
     src/memory.h src/memory.c
+    src/debug.h src/debug.c
 )
