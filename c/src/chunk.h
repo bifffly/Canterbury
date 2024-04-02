@@ -6,6 +6,8 @@
 
 typedef enum {
     OP_CONST,
+    OP_ADD, OP_SUB, OP_MUL, OP_DIV,
+    OP_NEG,
     OP_RET
 } OpCode;
 

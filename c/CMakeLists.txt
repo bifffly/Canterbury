@@ -10,4 +10,6 @@ add_executable(canterbury
     src/memory.h src/memory.c
     src/debug.h src/debug.c
     src/value.h src/value.c
+        src/vm.h
+        src/vm.c
 )
