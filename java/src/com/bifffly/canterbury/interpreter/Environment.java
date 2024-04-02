@@ -33,6 +33,10 @@ public class Environment {
         env.put(identifier, value);
     }
 
+    public void undefine(String identfier) {
+        env.remove(identfier);
+    }
+
     public Object get(Token identifier) {
         if (env.containsKey(identifier.getLexeme())) {
             return env.get(identifier.getLexeme());

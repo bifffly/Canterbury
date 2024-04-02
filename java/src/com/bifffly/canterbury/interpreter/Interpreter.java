@@ -234,7 +234,7 @@ public class Interpreter implements ExprVisitor<Object>, StmtVisitor<Object> {
 
     @Override
     public Object visitCaseExpr(CaseExpr expr) {
-        return exec(expr.getThen());
+        return eval(expr.getThen());
     }
 
     @Override
@@ -279,16 +279,14 @@ public class Interpreter implements ExprVisitor<Object>, StmtVisitor<Object> {
     @Override
     public Object visitMatchExpr(MatchExpr expr) {
         Object o = eval(expr.getExpr());
+        env.define("_", o);
         for (CaseExpr caseExpr: expr.getCases()) {
-            if (caseExpr.getCondition() instanceof VariableExpr varExpr
-                && varExpr.getIdentifier().getType() == UNDERSCORE) {
-                env.define(varExpr.getIdentifier().getLexeme(), o);
-            }
             Object compare = eval(caseExpr.getCondition());
-            if (isEqual(o, compare)) {
+            if (bool(compare) || isEqual(o, compare)) {
                 return eval(caseExpr);
             }
         }
+        env.undefine("_");
         return null;
     }
 

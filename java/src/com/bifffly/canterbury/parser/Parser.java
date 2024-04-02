@@ -126,7 +126,7 @@ public class Parser {
         if (match(WHILE)) {
             return whileStatement();
         }
-        if (match(LEFT_BRACKET)) {
+        if (match(LEFT_BRACE)) {
             return blockStatement();
         }
         return expressionStatement();
@@ -134,9 +134,9 @@ public class Parser {
 
     private Stmt importStatement() {
         Token module = consume(IDENTIFIER, "Expect module name after 'import'.");
-        consume(LEFT_BRACKET, "Expect '[' after module name");
+        consume(LEFT_PAREN, "Expect '(' after module name");
         List<Token> imports = new ArrayList<>();
-        if (!check(RIGHT_BRACKET)) {
+        if (!check(RIGHT_PAREN)) {
             do {
                 if (imports.size() >= 128) {
                     error(peek(), "Expected fewer than 128 imports.");
@@ -144,7 +144,7 @@ public class Parser {
                 imports.add(consume(IDENTIFIER, "Expected import name."));
             } while (match(COMMA));
         }
-        consume(RIGHT_BRACKET, "Expect ']' after imports.");
+        consume(RIGHT_PAREN, "Expect ')' after imports.");
         return new ImportStmt(module, imports);
     }
 
@@ -159,9 +159,9 @@ public class Parser {
     }
 
     private Stmt ifStatement() {
-        consume(LEFT_BRACKET, "Expect '[' after 'if'.");
+        consume(LEFT_PAREN, "Expect '[' after 'if'.");
         Expr condition = expression();
-        consume(RIGHT_BRACKET, "Expect ']' after condition.");
+        consume(RIGHT_PAREN, "Expect ']' after condition.");
 
         Stmt thenBranch = statement();
         Stmt elseBranch = null;
@@ -175,7 +175,7 @@ public class Parser {
     }
 
     private Stmt forStatement() {
-        consume(LEFT_BRACKET, "Expect '[' after 'for'.");
+        consume(LEFT_PAREN, "Expect '(' after 'for'.");
 
         Stmt initializer;
         if (match(COMMA)) {
@@ -192,12 +192,12 @@ public class Parser {
         consume(COMMA, "Expect ',' after loop condition.");
 
         Expr increment = null;
-        if (!check(RIGHT_BRACKET)) {
+        if (!check(RIGHT_PAREN)) {
             increment = expression();
         }
-        consume(RIGHT_BRACKET, "Expect ']' after loop declaration.");
+        consume(RIGHT_PAREN, "Expect ')' after loop declaration.");
 
-        consume(LEFT_BRACKET, "Expect '[' before loop body.");
+        consume(LEFT_BRACE, "Expect '{' before loop body.");
         Stmt body = blockStatement();
         if (increment != null) {
             body = new BlockStmt(List.of(body, new ExpressionStmt(increment)));
@@ -216,10 +216,10 @@ public class Parser {
     }
 
     private Stmt whileStatement() {
-        consume(LEFT_BRACKET, "Expect '[' after 'while'.");
+        consume(LEFT_PAREN, "Expect '(' after 'while'.");
         Expr condition = expression();
-        consume(RIGHT_BRACKET, "Expect ']' after condition.");
-        consume(LEFT_BRACKET, "Expect '[' before loop body.");
+        consume(RIGHT_PAREN, "Expect ')' after condition.");
+        consume(LEFT_BRACE, "Expect '{' before loop body.");
         Stmt body = blockStatement();
         return new WhileStmt(condition, body);
     }
@@ -227,11 +227,11 @@ public class Parser {
     private Stmt blockStatement() {
         List<Stmt> statements = new ArrayList<>();
 
-        while (!check(RIGHT_BRACKET) && hasNext()) {
+        while (!check(RIGHT_BRACE) && hasNext()) {
             statements.add(statement());
         }
 
-        consume(RIGHT_BRACKET, "Expect ']' after block.");
+        consume(RIGHT_BRACE, "Expect '}' after block.");
         return new BlockStmt(statements);
     }
 
@@ -249,31 +249,31 @@ public class Parser {
     }
 
     private CaseExpr matchCase() {
-        consume(LEFT_BRACKET, "Expect '[' before case body.");
+        consume(LEFT_PAREN, "Expect '(' before case body.");
         Expr condition = expression();
         consume(ARROW, "Expect '->' in case body.");
-        Stmt then = statement();
-        consume(RIGHT_BRACKET, "Expect ']' after case body.");
+        Expr then = expression();
+        consume(RIGHT_PAREN, "Expect ')' after case body.");
         return new CaseExpr(condition, then);
     }
 
     private Expr matchExpression() {
         Token token = previous();
-        consume(LEFT_BRACKET, "Expect '[' after 'match'.");
+        consume(LEFT_PAREN, "Expect '(' after 'match'.");
         Expr expr = expression();
-        consume(RIGHT_BRACKET, "Expect ']' after expression.");
+        consume(RIGHT_PAREN, "Expect ')' after expression.");
         consume(AGAINST, "Expect 'against' before match body.");
-        consume(LEFT_BRACKET, "Expect '[' before match body.");
+        consume(LEFT_BRACE, "Expect '{' before match body.");
         List<CaseExpr> cases = new ArrayList<>();
-        while(!check(RIGHT_BRACKET)) {
+        while(!check(RIGHT_BRACE)) {
             cases.add(matchCase());
         }
-        consume(RIGHT_BRACKET, "Expect ']' after match body.");
+        consume(RIGHT_BRACE, "Expect '}' after match body.");
         return new MatchExpr(token, expr, cases);
     }
 
     private Expr assignment() {
-        Expr expr = assignmentValue();
+        Expr expr = or();
         if (match(WALRUS)) {
             Token walrus = previous();
             Expr value = assignmentValue();
@@ -302,36 +302,36 @@ public class Parser {
             return func();
         }
         else {
-            return or();
+            return expression();
         }
     }
 
     private Expr struct() {
         Token decl = previous();
-        consume(LEFT_BRACKET, "Expect '[' after struct declaration.");
+        consume(LEFT_PAREN, "Expect '(' after struct declaration.");
         List<Token> params = params();
         List<AssignmentExpr> body = new ArrayList<>();
-        if (match(LEFT_BRACKET)) {
-            while (!check(RIGHT_BRACKET) && hasNext()) {
+        if (match(LEFT_BRACE)) {
+            while (!check(RIGHT_BRACE) && hasNext()) {
                 body.add(mandatoryAssignment());
             }
-            consume(RIGHT_BRACKET, "Expect ']' after class body.");
+            consume(RIGHT_BRACE, "Expect '}' after class body.");
         }
         return new StructExpr(decl, params, body);
     }
 
     private Expr func() {
         Token decl = previous();
-        consume(LEFT_BRACKET, "Expect '[' after function declaration.");
+        consume(LEFT_PAREN, "Expect '(' after function declaration.");
         List<Token> params = params();
-        consume(LEFT_BRACKET, "Expect function body.");
+        consume(LEFT_BRACE, "Expect function body.");
         BlockStmt body = (BlockStmt) blockStatement();
         return new FuncExpr(decl, params, body);
     }
 
     private List<Token> params() {
         List<Token> params = new ArrayList<>();
-        if (!check(RIGHT_BRACKET)) {
+        if (!check(RIGHT_PAREN)) {
             do {
                 if (params.size() >= 128) {
                     error(peek(), "Expected fewer than 128 parameters.");
@@ -339,7 +339,7 @@ public class Parser {
                 params.add(consume(IDENTIFIER, "Expect identifier in params body."));
             } while (match(COMMA));
         }
-        consume(RIGHT_BRACKET, "Expect ']' after params.");
+        consume(RIGHT_PAREN, "Expect ')' after params.");
         return params;
     }
 
@@ -425,7 +425,7 @@ public class Parser {
     private Expr call() {
         Expr expr = primary();
         while (true) {
-            if (match(LEFT_BRACKET)) {
+            if (match(LEFT_PAREN)) {
                 expr = completeCall(expr);
             } else if (check(IDENTIFIER)) {
                 Token identifier = consume(IDENTIFIER, "Expect attribute name.");
@@ -439,7 +439,7 @@ public class Parser {
 
     private Expr completeCall(Expr callee) {
         List<Expr> args = new ArrayList<>();
-        if (!check(RIGHT_BRACKET)) {
+        if (!check(RIGHT_PAREN)) {
             do {
                 if (args.size() >= 128) {
                     error(peek(), "Expected fewer than 128 arguments.");
@@ -447,7 +447,7 @@ public class Parser {
                 args.add(expression());
             } while (match(COMMA));
         }
-        Token bracket = consume(RIGHT_BRACKET, "Expect ']' after call arguments.");
+        Token bracket = consume(RIGHT_PAREN, "Expect ')' after call arguments.");
         return new CallExpr(callee, bracket, args);
     }
 
@@ -470,9 +470,9 @@ public class Parser {
         if (match(IDENTIFIER, UNDERSCORE)) {
             return new VariableExpr(previous());
         }
-        if (match(LEFT_BRACKET)) {
+        if (match(LEFT_PAREN)) {
             Expr expr = expression();
-            consume(RIGHT_BRACKET, "Expect ']' after expression.");
+            consume(RIGHT_PAREN, "Expect ')' after expression.");
             return new GroupingExpr(expr);
         }
 

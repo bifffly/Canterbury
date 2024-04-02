@@ -8,7 +8,7 @@ import lombok.Getter;
 @Getter
 public class CaseExpr implements Expr {
     private Expr condition;
-    private Stmt then;
+    private Expr then;
 
     @Override
     public <T> T accept(ExprVisitor<T> exprVisitor) {
