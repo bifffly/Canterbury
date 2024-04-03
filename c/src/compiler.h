@@ -35,5 +35,4 @@ typedef struct {
 
 bool compile(const char* src, Chunk* chunk);
 
-
 #endif

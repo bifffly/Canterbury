@@ -1,9 +1,12 @@
 #include <stdarg.h>
 #include <stdio.h>
+#include <string.h>
 
 #include "common.h"
 #include "compiler.h"
 #include "debug.h"
+#include "memory.h"
+#include "object.h"
 #include "vm.h"
 
 VM vm;
@@ -37,6 +40,20 @@ static Value peek(int distance) {
 
 static bool isTruthy(Value value) {
     return !IS_NULL(value) && (IS_BOOL(value) && AS_BOOL(value));
+}
+
+static void strconcat() {
+    ObjectString* bstr = AS_STR(pop());
+    ObjectString* astr = AS_STR(pop());
+
+    int length = astr->length + bstr->length;
+    char* chars = ALLOCATE(char, length + 1);
+    memcpy(chars, astr->chars, astr->length);
+    memcpy(chars + astr->length, bstr->chars, bstr->length);
+    chars[length] = '\0';
+
+    ObjectString* result = strtake(chars, length);
+    push(OBJ_VAL(result));
 }
 
 static InterpretResult run() {
@@ -76,7 +93,19 @@ static InterpretResult run() {
             }
             case OP_GREATER: BINARY_OP(BOOL_VAL, >); break;
             case OP_LESSER: BINARY_OP(BOOL_VAL, <); break;
-            case OP_ADD: BINARY_OP(NUM_VAL, +); break;
+            case OP_ADD: {
+                if (IS_STR(peek(0)) && IS_STR(peek(1))) {
+                    strconcat();
+                } else if (IS_NUM(peek(0)) && IS_NUM(peek(1))) {
+                    double b = AS_NUM(pop());
+                    double a = AS_NUM(pop());
+                    push(NUM_VAL(a + b));
+                } else {
+                    runtimeError("Operands must be nums or strs.");
+                    return INTERPRET_RUNTIME_ERR;
+                }
+                break;
+            }
             case OP_SUB: BINARY_OP(NUM_VAL, -); break;
             case OP_MUL: BINARY_OP(NUM_VAL, *); break;
             case OP_DIV: BINARY_OP(NUM_VAL, /); break;

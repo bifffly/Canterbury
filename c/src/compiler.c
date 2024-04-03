@@ -3,6 +3,7 @@
 
 #include "common.h"
 #include "compiler.h"
+#include "object.h"
 #include "scanner.h"
 
 #ifdef DEBUG_PRINT_CODE
@@ -95,6 +96,7 @@ static void grouping();
 static void number();
 static void unary();
 static void literal();
+static void string();
 
 ParseRule parseRules[] = {
     [T_LEFT_PAREN]    = {grouping, NULL,   PREC_NONE},
@@ -116,7 +118,7 @@ ParseRule parseRules[] = {
     [T_LESSER]        = {NULL,     binary, PREC_COMPARISON},
     [T_LEQ]           = {NULL,     binary, PREC_COMPARISON},
     [T_IDENT]         = {NULL,     NULL,   PREC_NONE},
-    [T_STR]           = {NULL,     NULL,   PREC_NONE},
+    [T_STR]           = {string,   NULL,   PREC_NONE},
     [T_NUM]           = {number,   NULL,   PREC_NONE},
     [T_AND]           = {NULL,     NULL,   PREC_NONE},
     [T_STRUCT]        = {NULL,     NULL,   PREC_NONE},
@@ -206,6 +208,10 @@ static void unary() {
         case T_MINUS: emitByte(OP_NEG); break;
         default: return;
     }
+}
+
+static void string() {
+    emitBytes(OP_CONST, makeConst(OBJ_VAL(strcopy(parser.previous.start + 1, parser.previous.length - 2))));
 }
 
 bool compile(const char* source, Chunk* chunk) {
