@@ -3,6 +3,7 @@
 
 #include "memory.h"
 #include "object.h"
+#include "table.h"
 #include "value.h"
 #include "vm.h"
 
@@ -16,22 +17,44 @@ static Object* objalloc(size_t size, ObjectType type) {
     return object;
 }
 
-static ObjectString* stralloc(char* chars, int length) {
+static ObjectString* stralloc(char* chars, int length, uint32_t hash) {
     ObjectString* string = ALLOCATE_OBJ(ObjectString, OBJ_STR);
     string->length = length;
     string->chars = chars;
+    string->hash = hash;
+    tablePut(&vm.strings, string, NULL_VAL);
     return string;
 }
 
+static uint32_t strhash(const char* key, int length) {
+    uint32_t hash = 2166136261u;
+    for (int i = 0; i < length; i++) {
+        hash ^= (uint8_t)key[i];
+        hash *= 16777619;
+    }
+    return hash;
+}
+
 ObjectString* strtake(char* chars, int length) {
-    return stralloc(chars, length);
+    uint32_t hash = strhash(chars, length);
+    ObjectString* interned = tableFindString(&vm.strings, chars, length, hash);
+    if (interned != NULL) {
+        FREE_ARRAY(char, chars, length + 1);
+        return interned;
+    }
+    return stralloc(chars, length, hash);
 }
 
 ObjectString* strcopy(const char* chars, int length) {
+    uint32_t hash = strhash(chars, length);
+    ObjectString* interned = tableFindString(&vm.strings, chars, length, hash);
+    if (interned != NULL) {
+        return interned;
+    }
     char* heapChars = ALLOCATE(char, length + 1);
     memcpy(heapChars, chars, length);
     heapChars[length] = '\0';
-    return stralloc(heapChars, length);
+    return stralloc(heapChars, length, hash);
 }
 
 void printObject(Value value) {

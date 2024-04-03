@@ -1,5 +1,4 @@
 #include <stdio.h>
-#include <string.h>
 
 #include "memory.h"
 #include "value.h"
@@ -33,12 +32,8 @@ bool isEqual(Value a, Value b) {
     switch (a.type) {
         case VAL_BOOL: return AS_BOOL(a) == AS_BOOL(b);
         case VAL_NUM: return AS_NUM(a) == AS_NUM(b);
-        case VAL_NULL: return false;
-        case VAL_OBJ: {
-            ObjectString* astr = AS_STR(a);
-            ObjectString* bstr = AS_STR(b);
-            return astr->length == bstr->length && memcmp(astr->chars, bstr->chars, astr->length) == 0;
-        }
+        case VAL_OBJ: return AS_OBJ(a) == AS_OBJ(b);
+        case VAL_NULL:
         default: return false;
     }
 }

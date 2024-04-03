@@ -14,4 +14,5 @@ add_executable(canterbury
     src/compiler.h src/compiler.c
     src/scanner.h src/scanner.c
     src/object.h src/object.c
+    src/table.h src/table.c
 )
