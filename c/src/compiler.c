@@ -94,6 +94,7 @@ static void binary();
 static void grouping();
 static void number();
 static void unary();
+static void literal();
 
 ParseRule parseRules[] = {
     [T_LEFT_PAREN]    = {grouping, NULL,   PREC_NONE},
@@ -106,29 +107,29 @@ ParseRule parseRules[] = {
     [T_SEMICOLON]     = {NULL,     NULL,   PREC_NONE},
     [T_SLASH]         = {NULL,     binary, PREC_FACTOR},
     [T_STAR]          = {NULL,     binary, PREC_FACTOR},
-    [T_BANG]          = {NULL,     NULL,   PREC_NONE},
-    [T_UNQEUAL]       = {NULL,     NULL,   PREC_NONE},
+    [T_BANG]          = {unary,    NULL,   PREC_NONE},
+    [T_UNQEUAL]       = {NULL,     binary, PREC_EQUALITY},
     [T_WALRUS]        = {NULL,     NULL,   PREC_NONE},
-    [T_EQUAL]         = {NULL,     NULL,   PREC_NONE},
-    [T_GREATER]       = {NULL,     NULL,   PREC_NONE},
-    [T_GEQ]           = {NULL,     NULL,   PREC_NONE},
-    [T_LESSER]        = {NULL,     NULL,   PREC_NONE},
-    [T_LEQ]           = {NULL,     NULL,   PREC_NONE},
+    [T_EQUAL]         = {NULL,     binary, PREC_EQUALITY},
+    [T_GREATER]       = {NULL,     binary, PREC_COMPARISON},
+    [T_GEQ]           = {NULL,     binary, PREC_COMPARISON},
+    [T_LESSER]        = {NULL,     binary, PREC_COMPARISON},
+    [T_LEQ]           = {NULL,     binary, PREC_COMPARISON},
     [T_IDENT]         = {NULL,     NULL,   PREC_NONE},
     [T_STR]           = {NULL,     NULL,   PREC_NONE},
     [T_NUM]           = {number,   NULL,   PREC_NONE},
     [T_AND]           = {NULL,     NULL,   PREC_NONE},
     [T_STRUCT]        = {NULL,     NULL,   PREC_NONE},
     [T_ELSE]          = {NULL,     NULL,   PREC_NONE},
-    [T_FALSE]         = {NULL,     NULL,   PREC_NONE},
+    [T_FALSE]         = {literal,  NULL,   PREC_NONE},
     [T_FOR]           = {NULL,     NULL,   PREC_NONE},
     [T_FUNC]          = {NULL,     NULL,   PREC_NONE},
     [T_IF]            = {NULL,     NULL,   PREC_NONE},
-    [T_NULL]          = {NULL,     NULL,   PREC_NONE},
+    [T_NULL]          = {literal,  NULL,   PREC_NONE},
     [T_OR]            = {NULL,     NULL,   PREC_NONE},
     [T_RETURN]        = {NULL,     NULL,   PREC_NONE},
     [T_SELF]          = {NULL,     NULL,   PREC_NONE},
-    [T_TRUE]          = {NULL,     NULL,   PREC_NONE},
+    [T_TRUE]          = {literal,  NULL,   PREC_NONE},
     [T_WHILE]         = {NULL,     NULL,   PREC_NONE},
     [T_ERR]           = {NULL,     NULL,   PREC_NONE},
     [T_EOF]           = {NULL,     NULL,   PREC_NONE},
@@ -168,6 +169,12 @@ static void binary() {
         case T_MINUS: emitByte(OP_SUB); break;
         case T_STAR: emitByte(OP_MUL); break;
         case T_SLASH: emitByte(OP_DIV); break;
+        case T_EQUAL: emitByte(OP_EQ); break;
+        case T_UNQEUAL: emitBytes(OP_EQ, OP_NOT); break;
+        case T_GREATER: emitByte(OP_GREATER); break;
+        case T_GEQ: emitBytes(OP_LESSER, OP_NOT); break;
+        case T_LESSER: emitByte(OP_LESSER); break;
+        case T_LEQ: emitBytes(OP_GREATER, OP_NOT); break;
         default: return;
     }
 }
@@ -177,15 +184,25 @@ static void grouping() {
     consume(T_RIGHT_PAREN, "Expect ')' after expression.");
 }
 
+static void literal() {
+    switch (parser.previous.type) {
+        case T_FALSE: emitByte(OP_FALSE); break;
+        case T_NULL: emitByte(OP_NULL); break;
+        case T_TRUE: emitByte(OP_TRUE); break;
+        default: return;
+    }
+}
+
 static void number() {
     double value = strtod(parser.previous.start, NULL);
-    emitBytes(OP_CONST, makeConst(value));
+    emitBytes(OP_CONST, makeConst(NUM_VAL(value)));
 }
 
 static void unary() {
     TokenType operatorType = parser.previous.type;
     parsePrecedence(PREC_UNARY);
     switch (operatorType) {
+        case T_BANG: emitByte(OP_NOT); break;
         case T_MINUS: emitByte(OP_NEG); break;
         default: return;
     }

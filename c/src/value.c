@@ -24,6 +24,22 @@ void freeValueArray(ValueArray* valueArray) {
     initValueArray(valueArray);
 }
 
+bool isEqual(Value a, Value b) {
+    if (a.type != b.type) {
+        return false;
+    }
+    switch (a.type) {
+        case VAL_BOOL: return AS_BOOL(a) == AS_BOOL(b);
+        case VAL_NUM: return AS_NUM(a) == AS_NUM(b);
+        case VAL_NULL:
+        default: return false;
+    }
+}
+
 void printValue(Value value) {
-    printf("%g", value);
+    switch (value.type) {
+        case VAL_BOOL: printf(AS_BOOL(value) ? "true" : "false"); break;
+        case VAL_NULL: printf("null"); break;
+        case VAL_NUM: printf("%g", AS_NUM(value)); break;
+    }
 }
