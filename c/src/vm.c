@@ -30,9 +30,12 @@ static void runtimeError(const char* format, ...) {
 
 void initVM() {
     resetStack();
+    vm.objects = NULL;
 }
 
-void freeVM() {}
+void freeVM() {
+    freeObjects();
+}
 
 static Value peek(int distance) {
     return vm.top[-1 - distance];
