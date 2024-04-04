@@ -1,6 +1,8 @@
 #ifndef CANTERBURY_VALUE_H
 #define CANTERBURY_VALUE_H
 
+#include <stdlib.h>
+
 #include "common.h"
 
 typedef struct Object Object;
