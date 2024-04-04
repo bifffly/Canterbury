@@ -92,7 +92,7 @@ static InterpretResult run() {
                 break;
             }
             case OP_POP: pop(); break;
-            case OP_DEF_GLOBAL: {
+            case OP_SET_GLOBAL: {
                 ObjectString* name = READ_STR();
                 tablePut(&vm.globals, name, peek(0));
                 pop();
@@ -106,6 +106,16 @@ static InterpretResult run() {
                     return INTERPRET_RUNTIME_ERR;
                 }
                 push(value);
+                break;
+            }
+            case OP_SET_LOCAL: {
+                uint8_t slot = READ_BYTE();
+                vm.stack[slot] = peek(0);
+                break;
+            }
+            case OP_GET_LOCAL: {
+                uint8_t slot = READ_BYTE();
+                push(vm.stack[slot]);
                 break;
             }
             case OP_NULL: push(NULL_VAL); break;

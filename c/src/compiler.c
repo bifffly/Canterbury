@@ -1,16 +1,18 @@
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 
 #include "common.h"
 #include "compiler.h"
-#include "object.h"
 #include "scanner.h"
+#include "object.h"
 
 #ifdef DEBUG_PRINT_CODE
 #include "debug.h"
 #endif
 
 Parser parser;
+Compiler* current = NULL;
 Chunk* compilingChunk;
 
 static Chunk* currentChunk() {
@@ -94,6 +96,12 @@ static uint8_t makeConst(Value value) {
     return (uint8_t) constant;
 }
 
+static void initCompiler(Compiler* compiler) {
+    compiler->localCount = 0;
+    compiler->scopeDepth = 0;
+    current = compiler;
+}
+
 static void endCompiler() {
     emitByte(OP_RET);
 #ifdef DEBUG_PRINT_CODE
@@ -103,10 +111,22 @@ static void endCompiler() {
 #endif
 }
 
-static void expressionStatement();
+static void beginScope() {
+    current->scopeDepth++;
+}
 
+static void endScope() {
+    current->scopeDepth--;
+    while (current->localCount > 0 && current->locals[current->localCount - 1].depth
+        > current->scopeDepth) {
+        emitByte(OP_POP);
+        current->localCount--;
+    }
+}
+
+static void expressionStatement();
 static void expression();
-static void assignment();
+static void block();
 static void binary(bool canAssign);
 static void grouping(bool canAssign);
 static void number(bool canAssign);
@@ -183,8 +203,36 @@ static uint8_t identConst(Token* token) {
     return makeConst(OBJ_VAL(strcopy(token->start, token->length)));
 }
 
-static void defineGlobal(uint8_t global) {
-    emitBytes(OP_DEF_GLOBAL, global);
+static bool identifiersEqual(Token* a, Token* b) {
+    if (a->length != b->length) {
+        return false;
+    }
+    return memcmp(a->start, b->start, a->length) == 0;
+}
+
+static void addLocal(Token token) {
+    if (current->localCount > UINT8_COUNT) {
+        error("Too many local variables in function.");
+        return;
+    }
+    Local* local = &current->locals[current->localCount++];
+    local->name = token;
+    local->depth = -1;
+}
+
+static int resolveLocal(Compiler* compiler, Token* token) {
+    if (current->scopeDepth == 0) {
+        return -1;
+    }
+
+    for (int i = compiler->localCount - 1; i >= 0; i--) {
+        Local* local = &compiler->locals[i];
+        if (identifiersEqual(token, &local->name)) {
+            return i;
+        }
+    }
+
+    return -1;
 }
 
 static void sync() {
@@ -206,7 +254,13 @@ static void sync() {
 }
 
 static void statement() {
-    expressionStatement();
+    if (match(T_LEFT_BRACE)) {
+        beginScope();
+        block();
+        endScope();
+    } else {
+        expressionStatement();
+    }
     if (parser.panicState) {
         sync();
     }
@@ -220,6 +274,14 @@ static void expressionStatement() {
 
 static void expression() {
     parsePrecedence(PREC_ASSIGNMENT);
+}
+
+static void block() {
+    while (!check(T_RIGHT_BRACE) && !check(T_EOF)) {
+        statement();
+    }
+
+    consume(T_RIGHT_BRACE, "Expect '}' after block.");
 }
 
 static void binary(bool canAssign) {
@@ -275,13 +337,31 @@ static void string(bool canAssign) {
     emitBytes(OP_CONST, makeConst(OBJ_VAL(strcopy(parser.previous.start + 1, parser.previous.length - 2))));
 }
 
+static void markInitialized() {
+    current->locals[current->localCount - 1].depth = current->scopeDepth;
+}
+
 static void namedVar(Token token, bool canAssign) {
-    uint8_t arg = identConst(&token);
+    if (current->scopeDepth > 0) {
+        markInitialized();
+        addLocal(token);
+    }
+
+    uint8_t getOp, setOp;
+    int arg = resolveLocal(current, &token);
+    if (arg != -1) {
+        getOp = OP_GET_LOCAL;
+        setOp = OP_SET_LOCAL;
+    } else {
+        arg = identConst(&token);
+        getOp = OP_GET_GLOBAL;
+        setOp = OP_SET_GLOBAL;
+    }
     if (canAssign && match(T_WALRUS)) {
         expression();
-        emitBytes(OP_DEF_GLOBAL, arg);
+        emitBytes(setOp, arg);
     }
-    emitBytes(OP_GET_GLOBAL, arg);
+    emitBytes(getOp, arg);
 }
 
 static void var(bool canAssign) {
@@ -290,6 +370,8 @@ static void var(bool canAssign) {
 
 bool compile(const char* source, Chunk* chunk) {
     initScanner(source);
+    Compiler compiler;
+    initCompiler(&compiler);
     compilingChunk = chunk;
     parser.errorState = false;
     parser.panicState = false;
