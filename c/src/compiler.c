@@ -86,6 +86,34 @@ static void emitBytes(uint8_t byte1, uint8_t byte2) {
     emitByte(byte2);
 }
 
+static int emitJump(uint8_t instruction) {
+    emitByte(instruction);
+    emitByte(0xff);
+    emitByte(0xff);
+    return currentChunk()->count - 2;
+}
+
+static void emitLoop(int loopStart) {
+    emitByte(OP_LOOP);
+
+    int offset = currentChunk()->count - loopStart + 2;
+    if (offset > UINT16_MAX) error("Loop body too large.");
+
+    emitByte((offset >> 8) & 0xff);
+    emitByte(offset & 0xff);
+}
+
+static void patchJump(int offset) {
+    int jump = currentChunk()->count - offset - 2;
+
+    if (jump > UINT16_MAX) {
+        error("Too much code to jump over.");
+    }
+
+    currentChunk()->code[offset] = (jump >> 8) & 0xff;
+    currentChunk()->code[offset + 1] = jump & 0xff;
+}
+
 static uint8_t makeConst(Value value) {
     int constant = addConstant(currentChunk(), value);
     if (constant > UINT8_MAX) {
@@ -125,8 +153,11 @@ static void endScope() {
 }
 
 static void expressionStatement();
-static void expression();
+static void ifStatement();
+static void whileStatement();
+static void forStatement();
 static void block();
+static void expression();
 static void binary(bool canAssign);
 static void grouping(bool canAssign);
 static void number(bool canAssign);
@@ -134,6 +165,8 @@ static void unary(bool canAssign);
 static void literal(bool canAssign);
 static void string(bool canAssign);
 static void var(bool canAssign);
+static void and_(bool canAssign);
+static void or_(bool canAssign);
 
 ParseRule parseRules[] = {
     [T_LEFT_PAREN]    = {grouping, NULL,   PREC_NONE},
@@ -157,7 +190,7 @@ ParseRule parseRules[] = {
     [T_IDENT]         = {var,      NULL,   PREC_NONE},
     [T_STR]           = {string,   NULL,   PREC_NONE},
     [T_NUM]           = {number,   NULL,   PREC_NONE},
-    [T_AND]           = {NULL,     NULL,   PREC_NONE},
+    [T_AND]           = {NULL,     and_,   PREC_AND},
     [T_STRUCT]        = {NULL,     NULL,   PREC_NONE},
     [T_ELSE]          = {NULL,     NULL,   PREC_NONE},
     [T_FALSE]         = {literal,  NULL,   PREC_NONE},
@@ -165,7 +198,7 @@ ParseRule parseRules[] = {
     [T_FUNC]          = {NULL,     NULL,   PREC_NONE},
     [T_IF]            = {NULL,     NULL,   PREC_NONE},
     [T_NULL]          = {literal,  NULL,   PREC_NONE},
-    [T_OR]            = {NULL,     NULL,   PREC_NONE},
+    [T_OR]            = {NULL,     or_,   PREC_AND},
     [T_RETURN]        = {NULL,     NULL,   PREC_NONE},
     [T_SELF]          = {NULL,     NULL,   PREC_NONE},
     [T_TRUE]          = {literal,  NULL,   PREC_NONE},
@@ -258,6 +291,12 @@ static void statement() {
         beginScope();
         block();
         endScope();
+    } else if (match(T_IF)) {
+        ifStatement();
+    } else if (match(T_WHILE)) {
+        whileStatement();
+    } else if (match(T_FOR)) {
+        forStatement();
     } else {
         expressionStatement();
     }
@@ -274,6 +313,74 @@ static void expressionStatement() {
 
 static void expression() {
     parsePrecedence(PREC_ASSIGNMENT);
+}
+
+static void ifStatement() {
+    consume(T_LEFT_PAREN, "Expect '(' after 'if'.");
+    expression();
+    consume(T_RIGHT_PAREN, "Expect ')' after condition.");
+
+    int thenJump = emitJump(OP_JUMP_FALSE);
+    emitByte(OP_POP);
+    statement();
+    int elseJump = emitJump(OP_JUMP);
+    patchJump(thenJump);
+    emitByte(OP_POP);
+
+    if (match(T_ELSE)) {
+        statement();
+    }
+    patchJump(elseJump);
+}
+
+static void whileStatement() {
+    int loopStart = currentChunk()->count;
+    consume(T_LEFT_PAREN, "Expect '(' after 'while'.");
+    expression();
+    consume(T_RIGHT_PAREN, "Expect ')' after condition.");
+
+    int exitJump = emitJump(OP_JUMP_FALSE);
+    emitByte(OP_POP);
+    statement();
+    emitLoop(loopStart);
+
+    patchJump(exitJump);
+    emitByte(OP_POP);
+}
+
+static void forStatement() {
+    consume(T_LEFT_PAREN, "Expect '(' after 'for'.");
+    if (!match(T_SEMICOLON)) {
+        expressionStatement();
+    }
+
+    int loopStart = currentChunk()->count;
+    int exitJump = -1;
+    if (!match(T_SEMICOLON)) {
+        expression();
+        consume(T_SEMICOLON, "Expect ';' after loop condition.");
+
+        exitJump = emitJump(OP_JUMP_FALSE);
+        emitByte(OP_POP);
+    }
+    if (!match(T_RIGHT_PAREN)) {
+        int bodyJump = emitJump(OP_JUMP);
+        int incrementStart = currentChunk()->count;
+        expression();
+        emitByte(OP_POP);
+        consume(T_RIGHT_PAREN, "Expect ')' after for declaration.");
+
+        emitLoop(loopStart);
+        loopStart = incrementStart;
+        patchJump(bodyJump);
+    }
+
+    statement();
+    emitLoop(loopStart);
+    if (exitJump != -1) {
+        patchJump(exitJump);
+        emitByte(OP_POP);
+    }
 }
 
 static void block() {
@@ -337,12 +444,34 @@ static void string(bool canAssign) {
     emitBytes(OP_CONST, makeConst(OBJ_VAL(strcopy(parser.previous.start + 1, parser.previous.length - 2))));
 }
 
+static void and_(bool canAssign) {
+    int endJump = emitJump(OP_JUMP_FALSE);
+
+    emitByte(OP_POP);
+    parsePrecedence(PREC_AND);
+
+    patchJump(endJump);
+}
+
+static void or_(bool canAssign) {
+    int elseJump = emitJump(OP_JUMP_FALSE);
+    int endJump = emitJump(OP_JUMP);
+
+    patchJump(elseJump);
+    emitByte(OP_POP);
+
+    parsePrecedence(PREC_OR);
+    patchJump(endJump);
+}
+
 static void markInitialized() {
     current->locals[current->localCount - 1].depth = current->scopeDepth;
 }
 
 static void namedVar(Token token, bool canAssign) {
-    if (current->scopeDepth > 0) {
+    Value _value;
+    bool shadowsGlobal = !tableGet(&vm.globals, strcopy(token.start, token.length), &_value);
+    if (current->scopeDepth > 0 && !shadowsGlobal) {
         markInitialized();
         addLocal(token);
     }

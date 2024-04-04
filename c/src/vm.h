@@ -32,5 +32,6 @@ InterpretResult interpret(const char* src);
 
 void push(Value value);
 Value pop();
+void dumpStack();
 
 #endif

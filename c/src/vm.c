@@ -66,6 +66,7 @@ static void strconcat() {
 static InterpretResult run() {
 #define READ_BYTE() (*vm.ip++)
 #define READ_CONST() (vm.chunk->consts.values[READ_BYTE()])
+#define READ_SHORT() (vm.ip += 2, (uint16_t) ((vm.ip[-2] << 8) | vm.ip[-1]))
 #define READ_STR() AS_STR(READ_CONST())
 
 #define BINARY_OP(valueType, op) \
@@ -118,6 +119,21 @@ static InterpretResult run() {
                 push(vm.stack[slot]);
                 break;
             }
+            case OP_JUMP_FALSE: {
+                uint16_t offset = READ_SHORT();
+                if (!isTruthy(peek(0))) vm.ip += offset;
+                break;
+            }
+            case OP_JUMP: {
+                uint16_t offset = READ_SHORT();
+                vm.ip += offset;
+                break;
+            }
+            case OP_LOOP: {
+                uint16_t offset = READ_SHORT();
+                vm.ip -= offset;
+                break;
+            }
             case OP_NULL: push(NULL_VAL); break;
             case OP_TRUE: push(BOOL_VAL(true)); break;
             case OP_FALSE: push(BOOL_VAL(false)); break;
@@ -162,6 +178,7 @@ static InterpretResult run() {
 
 #undef READ_BYTE
 #undef READ_CONST
+#undef READ_SHORT
 #undef READ_STR
 #undef BINARY_OP
 }
@@ -192,4 +209,13 @@ void push(Value value) {
 Value pop() {
     vm.top--;
     return *vm.top;
+}
+
+void dumpStack() {
+    while (vm.top != vm.stack) {
+        printValue(pop());
+        printf("\n");
+    }
+    printValue(pop());
+    printf("\n");
 }
