@@ -86,6 +86,13 @@ static void emitBytes(uint8_t byte1, uint8_t byte2) {
     emitByte(byte2);
 }
 
+static int emitFuncJump(uint8_t instruction) {
+    emitByte(instruction);
+    emitByte(0xff);
+    emitByte(0xff);
+    return currentChunk()->count;
+}
+
 static int emitJump(uint8_t instruction) {
     emitByte(instruction);
     emitByte(0xff);
@@ -104,6 +111,8 @@ static void emitLoop(int loopStart) {
 }
 
 static void patchJump(int offset) {
+    uint8_t* code = currentChunk()->code;
+
     int jump = currentChunk()->count - offset - 2;
 
     if (jump > UINT16_MAX) {
@@ -158,6 +167,7 @@ static void whileStatement();
 static void forStatement();
 static void block();
 static void expression();
+static void func(bool canAssign);
 static void binary(bool canAssign);
 static void grouping(bool canAssign);
 static void number(bool canAssign);
@@ -195,7 +205,7 @@ ParseRule parseRules[] = {
     [T_ELSE]          = {NULL,     NULL,   PREC_NONE},
     [T_FALSE]         = {literal,  NULL,   PREC_NONE},
     [T_FOR]           = {NULL,     NULL,   PREC_NONE},
-    [T_FUNC]          = {NULL,     NULL,   PREC_NONE},
+    [T_FUNC]          = {func,     NULL,   PREC_NONE},
     [T_IF]            = {NULL,     NULL,   PREC_NONE},
     [T_NULL]          = {literal,  NULL,   PREC_NONE},
     [T_OR]            = {NULL,     or_,   PREC_AND},
@@ -213,7 +223,8 @@ static ParseRule* getRule(TokenType type) {
 
 static void parsePrecedence(Precedence prec) {
     advance();
-    ParseFn prefixRule = getRule(parser.previous.type)->prefix;
+    Token previous = parser.previous;
+    ParseFn prefixRule = getRule(previous.type)->prefix;
     if (prefixRule == NULL) {
         error("Expect expression.");
         return;
@@ -313,6 +324,29 @@ static void expressionStatement() {
 
 static void expression() {
     parsePrecedence(PREC_ASSIGNMENT);
+}
+
+static void func(bool canAssign) {
+    int funcJump = emitJump(OP_JUMP);
+    int handle = currentChunk()->count;
+    consume(T_LEFT_PAREN, "Expect '(' after 'func'.");
+    int arity = 0;
+    if (!check(T_RIGHT_PAREN)) {
+        do {
+            if (arity++ > 255) {
+                errorAtCurrent("Cannot have more than 255 parameters.");
+            }
+            var(canAssign);
+        } while (match(T_COMMA));
+    }
+    consume(T_RIGHT_PAREN, "Expect ')' after parameters.");
+    consume(T_LEFT_BRACE, "Expect '{' before function body.");
+    beginScope();
+    block();
+    endScope();
+    patchJump(funcJump);
+    ObjectFunction* func = funcalloc(handle, arity);
+    emitBytes(OP_CONST, makeConst(OBJ_VAL(func)));
 }
 
 static void ifStatement() {
@@ -471,7 +505,7 @@ static void markInitialized() {
 static void namedVar(Token token, bool canAssign) {
     Value _value;
     bool shadowsGlobal = !tableGet(&vm.globals, strcopy(token.start, token.length), &_value);
-    if (current->scopeDepth > 0 && !shadowsGlobal) {
+    if (current->scopeDepth > 0 && shadowsGlobal) {
         markInitialized();
         addLocal(token);
     }

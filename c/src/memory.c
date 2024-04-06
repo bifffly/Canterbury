@@ -18,6 +18,10 @@ void* reallocate(void* pointer, size_t oldSize, size_t newSize) {
 
 static void objfree(Object* object) {
     switch (object->type) {
+        case OBJ_FUNC: {
+            FREE(ObjectFunction, object);
+            break;
+        }
         case OBJ_STR: {
             ObjectString* string = (ObjectString*) object;
             FREE_ARRAY(char, string->chars, string->length + 1);
